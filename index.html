@@ -27,7 +27,8 @@ body{font-family:Outfit,system-ui,sans-serif;color:var(--txt);overflow:hidden;ba
 #log div:last-child{font-size:15px;font-weight:800;border-color:#fff8}
 #gbar{bottom:108px}
 #gbar button{font-size:16px;padding:12px 18px}
-#gbar span{align-self:center;font-weight:800;padding:0 8px}
+#gbar{flex-wrap:wrap;justify-content:center;max-width:88%}
+#gbar span{align-self:center;font-weight:800;padding:0 8px;max-width:520px}
 #modal{position:absolute;inset:0;background:#050818cc;display:none;align-items:center;justify-content:center;z-index:20;cursor:default}
 #modal.show{display:flex}
 .box{background:linear-gradient(180deg,#1a2250,#0f1432);border:1px solid var(--line);border-radius:22px;padding:24px;width:min(660px,92%);max-height:92%;overflow:auto;display:flex;flex-direction:column;gap:14px}
@@ -608,7 +609,7 @@ const RR=[5,15,25,35],UT=[12,28],START=1500,SAL=200,BAIL=50,ownG={};
 const GM={on:false,players:[],cur:0,phase:'',dbl:0,owner:{},mort:{},dice:[0,0],debt:null,fast:false,busy:false,log:[],decks:{ch:[],cc:[]}};
 const demo={name:'Pedina',mesh:makeToken('pedone','#d9a520'),pos:0,cash:0,jf:[],color:'#d9a520'};scene.add(demo.mesh);
 let pawn=demo.mesh;const segs=[],moving=p=>segs.some(x=>x.pl===p),dir=new THREE.Vector3(-1,0,0);
-const curP=()=>GM.on?GM.players[GM.cur]:demo,actor=()=>GM.debt?GM.debt.pl:curP(),alive=()=>GM.players.filter(p=>!p.out),d6=()=>1+Math.floor(Math.random()*6);
+const curP=()=>GM.on?GM.players[GM.cur]:demo,actor=()=>GM.debt?GM.debt.pl:(GM.trade?GM.players[GM.trade.to]:(GM.auction?GM.players[GM.auction.turn]:curP())),alive=()=>GM.players.filter(p=>!p.out),d6=()=>1+Math.floor(Math.random()*6);
 const groupIds=g=>T.map((t,i)=>t.t==='prop'&&t.g===g?i:-1).filter(i=>i>=0);
 const hasSet=(pl,g)=>groupIds(g).every(i=>GM.owner[i]===pl);
 const owned=pl=>Object.keys(GM.owner).map(Number).filter(i=>GM.owner[i]===pl);
@@ -668,6 +669,45 @@ function sellHouse(pl,i){pl.cash+=HC[T[i].g]/2;st[i].lv--;rebuild(i);say(`${pl.n
 function mortgage(pl,i){pl.cash+=T[i].p/2;GM.mort[i]=true;updateOwner(i);say(`${pl.name} ipoteca ${T[i].n}.`);}
 function unmortgage(pl,i){const c=Math.ceil(T[i].p/2*1.1);if(pl.cash<c)return false;pl.cash-=c;delete GM.mort[i];updateOwner(i);say(`${pl.name} riscatta ${T[i].n}.`);return true;}
 
+/* aste: quando una via non viene comprata */
+const nextIn=(turn,act)=>{const n=GM.players.length;for(let k=1;k<=n;k++){const j=(turn+k)%n;if(act.includes(j))return j;}return -1;};
+function startAuction(i){const n=GM.players.length,act=[];for(let k=1;k<=n;k++){const j=(GM.cur+k)%n;if(!GM.players[j].out&&GM.players[j].cash>=10)act.push(j);}
+  if(!act.length){say(`Nessuno può offrire per ${T[i].n}: resta libera.`);return;}
+  GM.auction={i,bid:0,leader:-1,turn:act[0],act};GM.phase='auction';GM.busy=false;say(`🔨 Asta per ${T[i].n}! Comincia ${GM.players[act[0]].name}.`);}
+function auctionEnd(){GM.auction=null;GM.phase=GM.after||'end';GM.busy=false;if(GM.phase==='roll')say(`Doppio: ${curP().name} tira ancora.`);ui();}
+function auctionWin(){const a=GM.auction,w=GM.players[a.leader];w.cash-=a.bid;GM.owner[a.i]=w;updateOwner(a.i);say(`🏠 ${w.name} vince l'asta: ${T[a.i].n} per ${EUR(a.bid)}.`);auctionEnd();}
+function auctionBid(v){const a=GM.auction;if(!a||GM.phase!=='auction')return;const p=GM.players[a.turn];if(v<=a.bid||p.cash<v)return;a.bid=v;a.leader=a.turn;say(`🔨 ${p.name} offre ${EUR(v)}.`);
+  if(a.act.length===1)return auctionWin();a.turn=nextIn(a.turn,a.act);ui();}
+function auctionPass(){const a=GM.auction;if(!a||GM.phase!=='auction')return;const t=a.turn;say(`${GM.players[t].name} passa.`);a.act=a.act.filter(j=>j!==t);
+  if(!a.act.length){say(`Nessuno vuole ${T[a.i].n}: resta libera.`);return auctionEnd();}
+  if(a.act.length===1&&a.leader===a.act[0])return auctionWin();a.turn=nextIn(t,a.act);ui();}
+function fastAuction(i){const c=alive().filter(p=>p.cash>=10).map(p=>[p,Math.min(p.cash,Math.round(T[i].p*(.45+Math.random()*.65)))]).sort((a,b)=>b[1]-a[1]);if(!c.length)return;
+  const w=c[0][0],v=Math.max(10,Math.min(c[0][1],(c[1]?c[1][1]:0)+10));w.cash-=v;GM.owner[i]=w;say(`🏠 ${w.name} vince l'asta: ${T[i].n} per ${EUR(v)}.`);}
+
+/* scambi tra giocatori */
+const tradable=pl=>owned(pl).filter(i=>T[i].t!=='prop'||groupIds(T[i].g).every(k=>st[k].lv===0));
+const tradeSide=x=>[...x.props.map(i=>T[i].n+(GM.mort[i]?' (ipotecata)':'')),x.cash?EUR(x.cash):'',x.jf?'carta Esci di prigione':''].filter(Boolean).join(', ')||'niente';
+function tradeModal(to){const me=actor();if(!GM.on||!canAct())return;const others=alive().filter(p=>p!==me);
+  if(to===undefined){modal(`<h2>🤝 Scambio</h2><p>Con chi vuoi fare uno scambio?</p>${others.map(p=>`<button class="big tp" data-k="${GM.players.indexOf(p)}"></button>`).join('')}<button class="big" id="mX">Annulla</button>`);
+    $('modal').querySelectorAll('.tp').forEach(e=>{e.textContent=GM.players[e.dataset.k].name;e.onclick=()=>tradeModal(+e.dataset.k);});$('mX').onclick=()=>modal('');return;}
+  const ot=GM.players[to],col=(pl,cls)=>tradable(pl).map(i=>`<label class="seat" style="font-weight:600;font-size:13.5px"><input type="checkbox" class="${cls}" value="${i}"><i style="background:${T[i].t==='prop'?G[T[i].g]:'#8892b8'}"></i>${T[i].n}${GM.mort[i]?' (ipotecata)':''}</label>`).join('')||'<p>Nessuna proprietà scambiabile.</p>';
+  modal(`<h2>🤝 Scambio con <span id="tn"></span></h2><p>Le vie con case nella serie non si possono scambiare: prima vendi le case.</p>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="display:flex;flex-direction:column;gap:6px"><div class="lab">Tu dai</div>${col(me,'tg')}<div class="prow"><input id="tgc" type="number" min="0" step="10000" value="0" style="width:120px"> €</div>${me.jf.length?'<label class="seat" style="font-size:13.5px"><input type="checkbox" id="tgj">Carta Esci di prigione</label>':''}</div>
+   <div style="display:flex;flex-direction:column;gap:6px"><div class="lab">Tu ricevi</div>${col(ot,'tr')}<div class="prow"><input id="trc" type="number" min="0" step="10000" value="0" style="width:120px"> €</div>${ot.jf.length?'<label class="seat" style="font-size:13.5px"><input type="checkbox" id="trj">Carta Esci di prigione</label>':''}</div></div>
+   <p id="te" style="color:#ffb86b"></p><div class="ctrl"><button class="big pri" id="tGo">Proponi lo scambio</button><button class="big" id="mX">Annulla</button></div>`);
+  $('tn').textContent=ot.name;$('mX').onclick=()=>modal('');
+  $('tGo').onclick=()=>{const pick=c=>[...$('modal').querySelectorAll('.'+c+':checked')].map(e=>+e.value),num=id=>Math.max(0,Math.round((+$(id).value||0)/1000));
+    const give={props:pick('tg'),cash:num('tgc'),jf:$('tgj')&&$('tgj').checked?1:0},get={props:pick('tr'),cash:num('trc'),jf:$('trj')&&$('trj').checked?1:0};
+    if(!give.props.length&&!give.cash&&!give.jf&&!get.props.length&&!get.cash&&!get.jf){$('te').textContent='Scegli almeno una cosa da scambiare.';return;}
+    if(give.cash>me.cash){$('te').textContent='Non hai tutti quei soldi.';return;}if(get.cash>ot.cash){$('te').textContent=ot.name+' non ha tutti quei soldi.';return;}
+    GM.trade={from:GM.players.indexOf(me),to,give,get,ret:GM.phase};GM.phase='trade';modal('');say(`🤝 ${me.name} propone uno scambio a ${ot.name}.`);ui();};}
+function tradeResolve(ok){const t=GM.trade;if(!t||GM.phase!=='trade')return;const a=GM.players[t.from],b=GM.players[t.to];
+  const good=ok&&a.cash>=t.give.cash&&b.cash>=t.get.cash&&t.give.props.every(i=>GM.owner[i]===a&&tradable(a).includes(i))&&t.get.props.every(i=>GM.owner[i]===b&&tradable(b).includes(i))&&a.jf.length>=t.give.jf&&b.jf.length>=t.get.jf;
+  if(good){t.give.props.forEach(i=>{GM.owner[i]=b;updateOwner(i);});t.get.props.forEach(i=>{GM.owner[i]=a;updateOwner(i);});a.cash+=t.get.cash-t.give.cash;b.cash+=t.give.cash-t.get.cash;
+    if(t.give.jf)b.jf.push(a.jf.pop());if(t.get.jf)a.jf.push(b.jf.pop());say(`🤝 Scambio fatto tra ${a.name} e ${b.name}.`);SFX.cash();checkThemes();}
+  else say(ok?'Lo scambio non è più possibile.':`${b.name} rifiuta lo scambio.`);
+  GM.phase=t.ret||'end';GM.trade=null;ui();}
+
 /* carte: testi nostri, stessi effetti e stesse quantità del gioco classico */
 const mvTo=i=>async pl=>{await goTo(pl,i);await land(pl);},near=list=>async pl=>{const i=list.find(k=>k>pl.pos);await goTo(pl,i===undefined?list[0]:i);await land(pl,true);};
 const gain=n=>async pl=>{pl.cash+=n;ui();},lose=n=>async pl=>{await pay(pl,n,null);};
@@ -713,7 +753,7 @@ async function drawCard(pl,k){const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];sa
 async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)select(i);
   if(t.p&&t.t!=='tax'){const o=GM.owner[i];
     if(!o){let yes;if(GM.fast)yes=pl.cash>=t.p;else{GM.phase='buy';ui();yes=await new Promise(r=>GM.buyRes=r);}
-      if(yes&&pl.cash>=t.p)buy(pl,i);else say(`${pl.name} non compra ${t.n}.`);}
+      if(yes&&pl.cash>=t.p)buy(pl,i);else{say(`${pl.name} non compra ${t.n}.`);if(GM.fast)fastAuction(i);else startAuction(i);}}
     else if(o!==pl){if(GM.mort[i])say(`${t.n} è ipotecata: niente affitto.`);else{const dc=(mult&&t.t==='util')?d6()+d6():GM.dice[0]+GM.dice[1],r=rentOf(i,dc,mult);
       say(`💸 ${pl.name} paga ${EUR(r)} di affitto a ${o.name} per ${t.n}.`);await pay(pl,r,o);}}}
   else if(t.t==='tax'){say(`${pl.name} paga ${EUR(t.p)}: ${t.n}.`);await pay(pl,t.p,null);}
@@ -729,13 +769,13 @@ async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&
   GM.again=again;
   if(move&&!pl.out){say(`${pl.name} tira ${a} + ${b}.`);await advance(pl,a+b);await land(pl);}
   GM.busy=false;
-  if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}GM.phase=(again&&!pl.jail)?'roll':'end';if(GM.phase==='roll')say(`Doppio: ${pl.name} tira ancora.`);}
+  if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}const nx=(again&&!pl.jail)?'roll':'end';GM.after=nx;if(GM.phase!=='auction'){GM.phase=nx;if(nx==='roll')say(`Doppio: ${pl.name} tira ancora.`);}}
   ui();}
 function endTurn(){if(GM.phase!=='end'||GM.busy)return;GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
   GM.phase=pl.jail?'jail':'roll';say(`Tocca a ${pl.name}.`);ui();}
 function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.cash-=BAIL;pl.jail=0;GM.phase='roll';say(`${pl.name} paga ${EUR(BAIL)} ed esce di prigione.`);ui();}
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
-function startGame(cfg){GM.players.forEach(p=>scene.remove(p.mesh));GM.owner={};GM.mort={};GM.log=[];GM.debt=null;GM.busy=false;GM.dbl=0;
+function startGame(cfg){GM.players.forEach(p=>scene.remove(p.mesh));GM.owner={};GM.mort={};GM.log=[];GM.debt=null;GM.auction=null;GM.trade=null;GM.busy=false;GM.dbl=0;
   for(const i in st){st[i].lv=0;rebuild(+i);}for(const i in ownG)updateOwner(+i);G.forEach((_,g)=>{grp[g].theme='';applyTheme(g);});
   ['ch','cc'].forEach(k=>{const d=[...Array(16).keys()];for(let n=15;n>0;n--){const j=Math.floor(Math.random()*(n+1));[d[n],d[j]]=[d[j],d[n]];}GM.decks[k]=d;});
   GM.roll=0;GM.again=false;NET.won=false;GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,mesh:makeToken(c.shape,c.color)}));
@@ -774,14 +814,17 @@ function ui(){if(GM.fast)return;
   const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;gb.appendChild(b);};
   const S=txt=>{const e=document.createElement('span');e.textContent=txt;gb.appendChild(e);};
   if(!GM.on){B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;advance(demo,a+b).then(ui);},'act');B('▶ Gioca una partita',startModal,'pri');}
-  else if(NET.on&&!mine()&&GM.phase!=='over'){S(mySeat()<0?`Stai guardando · tocca a ${actor().name}`:`Tocca a ${actor().name}…`);if(NET.uid===NET.hostUid&&mySeat()>=0)B(Date.now()-NET.arm<5000?'Conferma: salta il turno':'⏭ Salta il suo turno',netSkip);}
-  else if(GM.phase==='buy'){const i=pl.pos,done=yes=>{const r=GM.buyRes;GM.buyRes=null;GM.phase='';if(r)r(yes);else{if(yes&&pl.cash>=T[i].p&&T[i].p&&T[i].t!=='tax'&&!GM.owner[i])buy(pl,i);else say(`${pl.name} non compra ${T[i].n}.`);GM.busy=false;GM.phase=GM.again?'roll':'end';ui();}};
+  else if(NET.on&&!mine()&&GM.phase!=='over'){const au=GM.auction,tr=GM.trade;S((mySeat()<0?'Stai guardando · ':'')+(au?`🔨 Asta ${T[au.i].n}: ${au.bid?EUR(au.bid)+' ('+GM.players[au.leader].name+')':'nessuna offerta'} · tocca a ${actor().name}`:tr?`🤝 ${GM.players[tr.from].name} propone uno scambio a ${GM.players[tr.to].name}…`:`Tocca a ${actor().name}…`));if(NET.uid===NET.hostUid&&mySeat()>=0)B(Date.now()-NET.arm<5000?'Conferma: salta il turno':'⏭ Salta il suo turno',netSkip);}
+  else if(GM.phase==='auction'&&GM.auction){const a=GM.auction,p=actor();S(`🔨 ${T[a.i].n} · ${a.bid?'offerta '+EUR(a.bid)+' ('+GM.players[a.leader].name+')':'nessuna offerta'} · tocca a ${p.name}`);
+    [10,50,100].forEach(d=>B(`Offri ${EUR(a.bid+d)}`,()=>auctionBid(a.bid+d),'pri',p.cash<a.bid+d));B('Passo',auctionPass);}
+  else if(GM.phase==='trade'&&GM.trade){const t=GM.trade,a=GM.players[t.from],b=GM.players[t.to];S(`🤝 ${b.name}: ${a.name} ti dà ${tradeSide(t.give)} · in cambio di ${tradeSide(t.get)}`);B('Accetta',()=>tradeResolve(true),'pri');B('Rifiuta',()=>tradeResolve(false),'act');}
+  else if(GM.phase==='buy'){const i=pl.pos,done=yes=>{const r=GM.buyRes;GM.buyRes=null;GM.phase='';if(r)r(yes);else{GM.busy=false;GM.after=GM.again?'roll':'end';GM.phase=GM.after;const can=T[i].p&&T[i].t!=='tax'&&!GM.owner[i];if(yes&&pl.cash>=T[i].p&&can)buy(pl,i);else{say(`${pl.name} non compra ${T[i].n}.`);if(can)startAuction(i);}ui();}};
     S(`${pl.name}: ${T[i].n}?`);B(`Compra per ${EUR(T[i].p)}`,()=>done(true),'pri',pl.cash<T[i].p);B('Non comprare',()=>done(false));}
   else if(GM.phase==='debt'){const d=GM.debt;S(`${d.pl.name} deve pagare ${EUR(d.amt)}`);B('Paga',()=>GM.debtRes(true),'pri',d.pl.cash<d.amt);B('Vendi e ipoteca in automatico',()=>{autoRaise(d.pl,d.amt);ui();});B('Bancarotta',()=>GM.debtRes(false),'act');}
   else if(GM.busy){gb.style.display='none';}
-  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}`);B('🎲 Tira i dadi',doRoll,'act');}
+  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}`);B('🎲 Tira i dadi',doRoll,'act');if(alive().length>1)B('🤝 Scambio',()=>tradeModal());}
   else if(GM.phase==='jail'){S(`${pl.name} è in prigione`);B(`🎲 Tira per il doppio (${pl.jail}/3)`,doRoll,'act');B(`Paga ${EUR(BAIL)}`,jailPay,'',pl.cash<BAIL);if(pl.jf.length)B('🎟️ Usa la carta',jailCard);}
-  else if(GM.phase==='end'){S(`${pl.name}: puoi costruire, poi`);B('Fine turno ➜',endTurn,'pri');}
+  else if(GM.phase==='end'){S(`${pl.name}: puoi costruire, poi`);B('Fine turno ➜',endTurn,'pri');if(alive().length>1)B('🤝 Scambio',()=>tradeModal());}
   else if(GM.phase==='over'){if(!NET.on)B('▶ Nuova partita',setupModal,'pri');else S('Partita finita');}
   select(sel);
   if(NET.on&&GM.on){const m=mine()&&GM.phase!=='over';if(m&&!NET.wasMine)SFX.turn();NET.wasMine=m;document.title=m?'🎲 Tocca a te! – Re di Belluno':'Re di Belluno';
@@ -798,7 +841,7 @@ const SFX={dice(){for(let k=0;k<6;k++)noise(.05,.22,k*.07);},step(){tone(520,.05
   card(){noise(.22,.1);tone(660,.16,'sine',.08,.1);},jail(){tone(170,.45,'sawtooth',.1,0,80);},build(){[300,450,600].forEach((f,k)=>tone(f,.09,'square',.06,k*.08));},turn(){tone(660,.12,'sine',.12);tone(880,.22,'sine',.12,.12);},
   cash(){tone(1046,.08,'triangle',.09);tone(1568,.16,'triangle',.09,.07);},boom(){noise(.6,.3);tone(120,.6,'sawtooth',.12,0,40);},win(){[523,659,784,1046].forEach((f,k)=>tone(f,.28,'triangle',.13,k*.16));},chat(){tone(990,.06,'sine',.05);}};
 function sfxFor(m){if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
-  else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
+  else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
 /* ================= ONLINE ================= */
@@ -844,6 +887,7 @@ function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(
   return {started:true,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
     players:GM.players.map(p=>({uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
+    auction:GM.auction||null,trade:GM.trade||null,after:GM.after||'end',
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
 function netPush(){if(!NET.on||!NET.started||NET.applying||GM.fast)return;clearTimeout(NET.timer);NET.timer=setTimeout(()=>{const s=JSON.parse(JSON.stringify(netSnap()));bcast('state',s);
   NET.saving=NET.saving.then(()=>rpc('room_save',{p_code:NET.code,p_state:s})).catch(()=>{});},120);}
@@ -865,16 +909,17 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     (s.grp||[]).forEach((g,k)=>{if(grp[k]&&(g.theme!==grp[k].theme||g.light!==grp[k].light)){grp[k].theme=g.theme;grp[k].light=g.light;applyTheme(k);}});
     const n=Math.min((s.log||[]).length,Math.max(0,(s.logN||0)-NET.logN));if(n){s.log.slice(-n).forEach(m=>{GM.log.push(String(m));if(!first)sfxFor(String(m));});$('log').innerHTML=GM.log.slice(-3).map(x=>`<div>${x.replace(/</g,'&lt;')}</div>`).join('');}NET.logN=s.logN||0;
     GM.debt=s.debt&&GM.players[s.debt.pl]?{pl:GM.players[s.debt.pl],amt:s.debt.amt,to:s.debt.to>=0?GM.players[s.debt.to]:null}:null;
+    GM.auction=s.auction||null;GM.trade=s.trade||null;GM.after=s.after||'end';
     pawn=GM.players[GM.cur].mesh;
     if(first)GM.players.forEach(p=>{p.vpos=p.pos;p.mesh.position.copy(slot(p,p.pos));});
     else GM.players.forEach(p=>{if(!p.out&&p.vpos!==p.pos)NET.q=NET.q.then(()=>netWalk(p)).catch(()=>{});});
     NET.q=NET.q.then(()=>{GM.players.forEach(p=>{if(!p.out&&!moving(p)){p.vpos=p.pos;p.mesh.position.copy(slot(p,p.pos));}});face(curP());});
-    if(mine()){if(GM.phase==='buy')GM.buyRes=null;else if(GM.busy||GM.phase==='debt'||GM.phase===''){GM.busy=false;GM.debt=null;GM.phase='end';}}
+    if(mine()){if(GM.phase==='buy')GM.buyRes=null;else if(GM.phase!=='auction'&&GM.phase!=='trade'&&(GM.busy||GM.phase==='debt'||GM.phase==='')){GM.busy=false;GM.debt=null;GM.phase='end';}}
   NET.live=true;ui();
   }catch(e){console.error(e);}finally{NET.applying=false;NET.live=true;}
   if(GM.phase==='over'&&!NET.won){NET.won=true;const w=alive()[0];if(w)winModal(w);}
   else if(mySeat()<0&&!NET.spect&&GM.phase!=='over'&&!$('modal').classList.contains('show'))claimModal();}
-function netSkip(){const now=Date.now();if(now-NET.arm>5000){NET.arm=now;ui();return;}NET.arm=0;const pl=curP();say(`⏭ Il turno di ${pl.name} è stato saltato.`);GM.busy=false;GM.debt=null;GM.buyRes=null;GM.phase='end';NET.force=true;endTurn();}
+function netSkip(){const now=Date.now();if(now-NET.arm>5000){NET.arm=now;ui();return;}NET.arm=0;const pl=curP();say(`⏭ Il turno di ${pl.name} è stato saltato.`);GM.busy=false;GM.debt=null;GM.buyRes=null;GM.auction=null;GM.trade=null;GM.phase='end';NET.force=true;endTurn();}
 function chatAdd(m){if(!m||typeof m.t!=='string')return;const el=$('chatLog'),d=document.createElement('div'),b=document.createElement('b');b.textContent=String(m.n||'?').slice(0,14)+': ';b.style.color=/^#[0-9a-f]{6}$/i.test(m.c)?m.c:'#fff';d.appendChild(b);d.appendChild(document.createTextNode(m.t.slice(0,120)));el.appendChild(d);
   while(el.children.length>30)el.removeChild(el.firstChild);el.scrollTop=el.scrollHeight;SFX.chat();}
 function chatSend(t){t=String(t).trim().slice(0,120);if(!t||!NET.on)return;const p=GM.players[mySeat()]||NET.lobby[NET.uid]||{name:'Ospite',color:'#ffffff'},m={n:p.name,c:p.color==='#20232a'?'#b9c0d0':p.color,t};chatAdd(m);bcast('chat',m);}
@@ -918,7 +963,7 @@ const deed=document.getElementById('deed');
 function frame(w,d){const g=new THREE.Group(),m={color:'#ffffff',emissive:'#ffffff',emissiveIntensity:.9};
   g.add(box(w,.06,.09,'#fff',0,.05,-d/2+.045,m),box(w,.06,.09,'#fff',0,.05,d/2-.045,m),box(.09,.06,d,'#fff',-w/2+.045,.05,0,m),box(.09,.06,d,'#fff',w/2-.045,.05,0,m));
   g.children.forEach(c=>c.castShadow=false);return g;}
-const canAct=()=>GM.on&&GM.phase!=='over'&&mine()&&(!GM.busy||GM.phase==='buy'||GM.phase==='debt');
+const canAct=()=>GM.on&&GM.phase!=='over'&&GM.phase!=='auction'&&GM.phase!=='trade'&&mine()&&(!GM.busy||GM.phase==='buy'||GM.phase==='debt');
 const canDeco=i=>!GM.on||(canAct()&&GM.owner[i]===actor());
 function select(i){
   if(sel!==i||!marker){if(marker&&marker.parent)marker.parent.remove(marker);marker=frame(i%10===0?TD:TW,TD);tileG[i].add(marker);}
@@ -988,7 +1033,7 @@ function loop(){
 }
 function start(){buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
+window.__dbg={auctionBid,auctionPass,tradeResolve,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
 </script>
 </body>
 </html>
