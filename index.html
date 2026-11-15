@@ -223,7 +223,7 @@ const T=[
  {t:'cc',n:'Cassa comune',ic:'🎁'},
  P('Via Simon da Cusighe',3,180,[14,70,200,550,750,950]),
  P('Via Carrera',3,200,[16,80,220,600,800,1000]),
- {t:'corner',n:'Sosta libera',ic:'🏔️',sub:'Riposati',c:'#0072bb'},
+ {t:'corner',n:'Mercatino',ic:'🧺',sub:'Oggetti usati da rivendere',c:'#0072bb'},
  P('Via Roma',4,220,[18,90,250,700,875,1050]),
  {t:'ch',n:'Imprevisto',ic:'❓'},
  P('Via Rialto',4,220,[18,90,250,700,875,1050]),
@@ -339,7 +339,7 @@ function wrapText(x,txt,cx,y,maxW,lh){const w=txt.split(' ');let line='',lines=[
   lines.forEach((l,n)=>x.fillText(l,cx,y+n*lh));return lines.length;}
 
 /* il mondo: prato, colline lontane, alberi */
-let SEASON=0,snowP=null;const SEASM=[],PINE=['#2c6a3d','#2a6238'],AUT=['#d9822b','#c0392b','#e0b030','#a8552a'];
+let SEASON=0,snowP=null;const MTCOL=[],SEASM=[],PINE=['#2c6a3d','#2a6238'],AUT=['#d9822b','#c0392b','#e0b030','#a8552a'];
 function seasonTint(m){const u=m.userData,c=new THREE.Color(),s=SEASON,pine=PINE.includes(u.col),L=(hex,a)=>m.color.lerp(c.set(hex).convertSRGBToLinear(),a);m.color.copy(u.base);
   if(u.sk==='grass'){if(s===1)L('#c9c04a',.3);if(s===2)L('#a89a4e',.42);if(s===3)L('#f3f7fc',.9);}
   else{if(s===1)L('#2f7a2f',.15);if(s===2&&!pine)L(AUT[Math.max(0,['#3f8f45','#4f9f4a','#357c40','#5aa850'].indexOf(u.col))],.85);if(s===3)L('#eef3f8',pine?.5:.78);}}
@@ -412,7 +412,7 @@ function buildBoard(){
     const w=p.corner?TD:TW;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,TD),new THREE.MeshStandardMaterial({map:tex(tileCanvas(t,p.corner,i)),roughness:.88,envMapIntensity:.35}));
     m.rotation.x=-Math.PI/2;m.position.y=.004;m.receiveShadow=true;m.userData.i=i;g.add(m);tileMeshes.push(m);
-    if(t.t==='prop'){const b=new THREE.Group();b.position.set(0,0,-TD/2+BAND/2);b.scale.setScalar(BS);g.add(b);bldG[i]=b;const tg=new THREE.Group();tg.position.z=SH;g.add(tg);themeG[i]=tg;}
+    if(t.t==='prop'){const lg=new THREE.Mesh(new THREE.PlaneGeometry(TW-.17,BAND-.17),MT('grass','#7fc264'));lg.rotation.x=-Math.PI/2;lg.position.set(0,.006,-TD/2+BAND/2);lg.receiveShadow=true;g.add(lg);const b=new THREE.Group();b.position.set(0,0,-TD/2+BAND/2);b.scale.setScalar(BS);g.add(b);bldG[i]=b;const tg=new THREE.Group();tg.position.z=SH;g.add(tg);themeG[i]=tg;}
     if(!p.corner){const sg=streetSign(t);sg.position.set(-(TW/2-.05),0,-.2+SH);g.add(sg);if(i%2){const lm=lamp();lm.position.set(TW/2-.02,0,1.5+SH);g.add(lm);}}
     if(t.p&&t.t!=='tax'){const og=new THREE.Group();g.add(og);ownG[i]=og;}
     const off=p.corner?0:.62+SH;
@@ -441,6 +441,12 @@ function buildBoard(){
   });
   // colline e alberi fuori dal paese
   for(let n=0;n<14;n++){const a=n/14*Math.PI*2+.2,R=78+(n%3)*14,m=mountain(Math.cos(a)*R,Math.sin(a)*R,17+(n%4)*4,16+(n*7)%13,n+10);m.castShadow=false;scene.add(m);}
+  {const tg=tileG[20];if(tg){const wd=MT('planks','#8b5e3c'),AW=['#e23b3b','#2f7ff0','#2fb86a','#f7941d'],GD=['#ffd23d','#d93a96','#3fb6e8','#c9ced6','#8a4a2f','#7a4fd6'];
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b],n)=>{const q=new THREE.Group();q.position.set(a*1.28,0,b*1.28);q.rotation.y=Math.atan2(-a,-b);
+      q.add(tbox(.66,.05,.34,wd,0,.3,0));[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([u,v])=>q.add(box(.03,.74,.03,'#dfe3ee',u*.31,.37,v*.16)));
+      for(let k=0;k<5;k++){const st=box(.142,.03,.44,k%2?'#ffffff':AW[n],-.284+k*.142,.76,.02);st.rotation.x=.16;q.add(st);}
+      for(let k=0;k<4;k++){const it=k%2?box(.08,.08+k*.02,.08,GD[(n+k)%6],-.22+k*.15,.37,0):new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),M(GD[(n+k)%6],{metalness:.4,roughness:.4}));if(!(k%2))it.position.set(-.22+k*.15,.375,0);it.castShadow=true;q.add(it);}
+      q.add(tbox(.2,.16,.2,wd,.42,.08,.2));tg.add(q);});}}
   scenery();lifeScene();
   const rr2=rnd(99);for(let n=0;n<110;n++){const a=rr2()*6.283,R=H+3+rr2()*38,tx=Math.cos(a)*R,tz=Math.sin(a)*R;if(Math.abs(tx)<H+5.6&&Math.abs(tz)<H+5.6)continue;scene.add(tree(tx,tz,1.3+rr2()*1.4,rr2()>.7?1:0));}
 }
@@ -506,7 +512,7 @@ function lifeTick(now){const T4=now/1000;movers.forEach(m=>{let x,z,ry;
   else{const t=((m.t0+m.dir*T4*m.sp/(8*m.R))%1+1)%1,k=Math.floor(t*4),u=(t*4-k)*2-1,R=m.R;[x,z,ry]=k===0?[u*R,-R,0]:k===1?[R,u*R,-Math.PI/2]:k===2?[-u*R,R,Math.PI]:[-R,-u*R,Math.PI/2];if(m.dir<0)ry+=Math.PI;}
   m.g.position.set(x,m.bob!==undefined?Math.abs(Math.sin(T4*7*m.sp+m.bob))*.035:0,z);m.g.rotation.y=m.bob!==undefined?ry+Math.PI/2:ry;});}
 function seasonLight(){if(night)return;const s=SEASON;sun.color.set([0xfff0d8,0xfff3c4,0xffd9a8,0xe8f0ff][s]);sun.intensity=[1.45,1.6,1.3,1.25][s];scene.fog.color.set([0xcfe0f0,0xd6e6f2,0xe2d8c6,0xe6edf4][s]);}
-function setSeason(s){SEASON=s=((s|0)%4+4)%4;SEASM.forEach(seasonTint);const w=M('#2f79b0',{roughness:.05,metalness:.75});if(!w.userData.base)w.userData.base=w.color.clone();w.color.copy(w.userData.base);
+function setSeason(s){SEASON=s=((s|0)%4+4)%4;SEASM.forEach(seasonTint);seasonMount();const w=M('#2f79b0',{roughness:.05,metalness:.75});if(!w.userData.base)w.userData.base=w.color.clone();w.color.copy(w.userData.base);
   if(s===3){w.color.lerp(new THREE.Color('#d4e9f4').convertSRGBToLinear(),.85);w.roughness=.4;}else w.roughness=.05;
   if(!snowP){const N=1600,pos=new Float32Array(N*3),r=rnd(4242);for(let i=0;i<N;i++){pos[i*3]=(r()-.5)*72;pos[i*3+1]=r()*24;pos[i*3+2]=(r()-.5)*72;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
     snowP=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:.17,transparent:true,opacity:.9,depthWrite:false,fog:false}));snowP.frustumCulled=false;scene.add(snowP);}
@@ -526,16 +532,18 @@ function tree(x,z,s,kind){const g=new THREE.Group();g.position.set(x,0,z);g.rota
   if(kind){add(0,.85,0,.2,.72,.2,'#2c6a3d',0);add(0,.55,0,.23,.4,.23,'#2a6238',1);}
   else{const k=Math.abs(Math.round(x*3+z*5));add(0,.72,0,.3,.27,.3,GREENS[k%4],k);add(.16,.6,.08,.22,.2,.22,GREENS[(k+1)%4],k+1);add(-.15,.62,-.06,.22,.2,.2,GREENS[(k+2)%4],k+2);add(.02,.9,-.04,.2,.18,.2,GREENS[(k+3)%4],k+1);}
   return g;}
-function mountain(mx,mz,r,h,seed){const g=new THREE.ConeGeometry(r,h,56,22,true),p=g.attributes.position,col=[];
+function mountain(mx,mz,r,h,seed){const g=new THREE.ConeGeometry(r,h,56,22,true),p=g.attributes.position,col=[],wz=[];
   const snow=new THREE.Color('#f4f7fb').convertSRGBToLinear(),rock=new THREE.Color('#b7aaa2').convertSRGBToLinear(),rock2=new THREE.Color('#8f8580').convertSRGBToLinear(),wood=new THREE.Color('#47764a').convertSRGBToLinear(),c=new THREE.Color();
   for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const a=Math.atan2(z,x),t=(y+h/2)/h;
     const f=1+.24*Math.sin(a*3+seed)*(1-t)+.13*Math.sin(a*7+seed*2+t*6)+.07*Math.sin(a*13+t*11+seed)+.04*Math.sin(a*29+t*23);
     x*=f;z*=f;y+=.16*h*Math.sin(a*5+seed)*t*(1-t)*2+.03*h*Math.sin(a*17+t*9);p.setXYZ(i,x,y,z);
     const tt=t+.07*Math.sin(a*9+seed)+.03*Math.sin(a*23+t*30);
+    wz.push(tt>.62?0:tt>.2?.4:1);
     if(tt>.62)c.copy(snow);else if(tt>.2)c.copy(rock).lerp(rock2,.5+.5*Math.sin(a*11+t*14+seed));else c.copy(wood).lerp(rock2,Math.max(0,(tt-.1)*4));
     col.push(c.r,c.g,c.b);}
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
-  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,bumpMap:TX.plaster,bumpScale:.03}));m.position.set(mx,h/2-.02,mz);m.castShadow=m.receiveShadow=true;return m;}
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,bumpMap:TX.plaster,bumpScale:.03}));m.position.set(mx,h/2-.02,mz);m.castShadow=m.receiveShadow=true;MTCOL.push({g,base:Float32Array.from(col),wz});if(SEASON)seasonMount();return m;}
+function seasonMount(){const s=SEASON,sn=new THREE.Color('#f4f7fb').convertSRGBToLinear(),au=new THREE.Color('#9a7a3e').convertSRGBToLinear();MTCOL.forEach(({g,base,wz})=>{const a=g.attributes.color,d=a.array;for(let i=0;i<wz.length;i++){const w=s===3?wz[i]*.93:s===2&&wz[i]===1?.5:0,t=s===3?sn:au;d[i*3]=base[i*3]+(t.r-base[i*3])*w;d[i*3+1]=base[i*3+1]+(t.g-base[i*3+1])*w;d[i*3+2]=base[i*3+2]+(t.b-base[i*3+2])*w;}a.needsUpdate=true;});}
 
 /* ================= EDIFICI 3D ================= */
 function prism(w,h,len){const s=new THREE.Shape();s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(0,h);s.closePath();
@@ -815,7 +823,7 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(pl===curP()){const d=PATH[to].clone().sub(PATH[pl.pos]);if(d.lengthSq()>.01)dir.copy(d.normalize());yawOff=0;}
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=0;segs.push({pl,a,b,t0:performance.now(),to,res,dur:dur||250});SFX.step();});}
-async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);ui();}}face(pl);}
+async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);sellItems(pl);ui();}}face(pl);}
 const goTo=(pl,i)=>advance(pl,(i-pl.pos+40)%40);
 async function back(pl,n){for(let k=0;k<n;k++)await hop(pl,(pl.pos+39)%40);face(pl);}
 async function toJail(pl){pl.jail=1;GM.dbl=0;say(`🚓 ${pl.name} va in prigione.`);await hop(pl,10,600);face(pl);}
@@ -964,6 +972,20 @@ cc:[
  ['Affitti la mansarda ai turisti: ritira '+EUR(90)+'.',gain(90)],
  ["Revisione dell'auto: paghi "+EUR(45)+'.',lose(45)],
  ['Hai sbagliato strada: torna indietro di 2 caselle.',async pl=>{await back(pl,2);await land(pl);}]]};
+const ITEMS=[['Pentola ammaccata','🍳',10,0],['Vecchia radio','📻',20,0],['Sci di legno','🎿',30,0],['Macinino da caffè','☕',40,0],['Sveglia rotta','⏰',15,0],
+  ['Orologio a cucù','🕰️',80,1],['Bici da corsa anni ’70','🚲',100,1],['Quadro delle Dolomiti','🖼️',120,1],['Giradischi','💿',90,1],
+  ['Moneta d’oro della Serenissima','🪙',250,2],['Violino antico','🎻',300,2],['Orologio da taschino d’argento','⌚',220,2],
+  ['Disegno attribuito a Tiziano','🎨',1000,3],['Anello con diamante','💍',800,3]],RAR=['comune','buono','raro','leggendario'],RARC=['#c9ced6','#7dff9b','#8fd3f4','#ffd23d'],MKT=50,MKT_MAX=3;
+function pickItem(){const r=Math.random(),q=r<.55?0:r<.85?1:r<.97?2:3,L=ITEMS.filter(x=>x[3]===q);return L[Math.floor(Math.random()*L.length)];}
+function sellItems(pl){if(!pl.items||!pl.items.length)return;const tot=pl.items.reduce((a,x)=>a+x[2],0);pl.cash+=tot;say(`💎 ${pl.name} vende alla banca: ${pl.items.map(x=>x[1]+' '+x[0]+' '+EUR(x[2])).join(', ')}.`);pl.items=[];}
+async function market(pl){if(pl.out)return;pl.items=pl.items||[];
+  if(pl.items.length>=MKT_MAX){say(`${pl.name} è al mercatino, ma ha già ${MKT_MAX} oggetti.`);return;}
+  if(pl.cash<MKT){say(`${pl.name} guarda le bancarelle, ma non ha ${EUR(MKT)}.`);return;}
+  let yes;if(GM.fast)yes=pl.cash>=MKT+300;else yes=await new Promise(res=>{modal(`<h2>🧺 Mercatino dell’usato</h2><p>Tre oggetti coperti. Ne scegli uno e lo paghi <b>${EUR(MKT)}</b>. Può essere un bidone o un tesoro. La banca te lo compra al suo vero valore quando passi dalla Partenza. Puoi tenerne al massimo ${MKT_MAX}.</p><div class="ctrl">${[0,1,2].map(()=>`<button class="big act mk" style="font-size:38px;padding:20px 0">🎁</button>`).join('')}</div><button class="big" id="mX">Non compro niente</button>`);
+    $('modal').querySelectorAll('.mk').forEach(e=>e.onclick=()=>{modal('');res(true);});$('mX').onclick=()=>{modal('');res(false);};});
+  if(!yes||pl.cash<MKT){say(`${pl.name} passa dal mercatino senza comprare.`);return;}
+  const it=pickItem();pl.cash-=MKT;pl.items.push([it[0],it[1],it[2],it[3]]);say(`🧺 ${pl.name} compra al mercatino: ${it[1]} ${it[0]} (${RAR[it[3]]}).`);ui();
+  if(!GM.fast)await new Promise(res=>{modal(`<div style="text-align:center;font-size:72px;line-height:1">${it[1]}</div><h2 style="text-align:center;color:${RARC[it[3]]}">${it[0]}</h2><p style="text-align:center">Oggetto <b>${RAR[it[3]]}</b>. Scoprirai quanto vale quando lo vendi alla banca, passando dalla Partenza.</p><button class="big pri" id="mOk">OK</button>`);$('mOk').onclick=()=>{modal('');res();};});}
 async function drawCard(pl,k){if(k==='ch'&&Math.random()<.34){const L=SEAS[GM.season||0].cards,c=L[Math.floor(Math.random()*L.length)];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);await c[1](pl);return;}
   const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
   if(c[2])pl.jf.push([k,id]);else d.push(id);await c[1](pl);}
@@ -984,7 +1006,8 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
       say(`💸 ${pl.name} paga ${EUR(r)} di affitto a ${o.name} per ${t.n}.`);await pay(pl,r,o);}}}
   else if(t.t==='tax'){say(`${pl.name} paga ${EUR(t.p)}: ${t.n}.`);await pay(pl,t.p,null);}
   else if(t.t==='ch'||t.t==='cc')await drawCard(pl,t.t);
-  else if(i===30)await toJail(pl);}
+  else if(i===30)await toJail(pl);
+  else if(i===20)await market(pl);}
 async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&GM.phase!=='jail'))return;GM.busy=true;
   const a=d6(),b=d6(),dbl=a===b;GM.dice=[a,b];GM.roll=(GM.roll||0)+1;if(!GM.fast){const d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;}ui();await rollDiceAnim(a,b);
   let move=true,again=false;
@@ -1041,7 +1064,7 @@ function propsModal(k){const p=GM.players[k];if(!p)return;GM.propsOpen=k;const m
   const rows=ids.map(i=>{const t=T[i],s=st[i],lv=s?s.lv:0,stt=GM.mort[i]?'ipotecata':(t.t==='prop'?(lv===5?'🏨 albergo':lv?'🏠'.repeat(lv):(hasSet(p,t.g)?'serie completa':'')):'');
     const rent=GM.mort[i]?'niente affitto':(t.t==='util'?'affitto × dadi':'affitto '+EUR(rentOf(i,7,false)));
     return `<div class="pm"><i style="background:${t.t==='prop'?G[t.g]:'#8892b8'}"></i><a data-i="${i}" class="pmn" style="cursor:pointer">${t.n}</a><small>${stt}</small><span class="sp"></span><small>${rent}</small>${me?`${s?`<button data-a="b" data-i="${i}" title="Costruisci" ${whyNoBuild(p,i)?'disabled':''}>+🏠</button><button data-a="s" data-i="${i}" title="Vendi una casa" ${whyNoSell(p,i)?'disabled':''}>−🏠</button>`:''}<button data-a="m" data-i="${i}" ${GM.mort[i]?(p.cash<Math.ceil(t.p/2*1.1)?'disabled':''):(whyNoMort(p,i)?'disabled':'')}>${GM.mort[i]?'Riscatta':'Ipoteca'}</button>`:''}</div>`;}).join('');
-  modal(`<h2 id="pm"></h2><p>Soldi: <b>${EUR(p.cash)}</b> · Valore totale: <b>${EUR(worth(p))}</b>${p.jf.length?' · 🎟️ carta Esci di prigione':''}</p>${me&&GM.debt&&GM.debt.pl===p?`<div class="ctrl" style="align-items:center"><b style="color:#ffb3a8">Devi pagare ${EUR(GM.debt.amt)}.</b><button class="big pri" id="pPay" ${p.cash<GM.debt.amt?'disabled':''}>Paga adesso</button></div>`:''}${me?'<p>Puoi costruire su ogni via di una serie completa. Clicca il nome di una via per vederla e decorarla.</p>':''}${rows||'<p>Nessuna proprietà.</p>'}<button class="big" id="mX">Chiudi</button>`);
+  modal(`<h2 id="pm"></h2><p>Soldi: <b>${EUR(p.cash)}</b> · Valore totale: <b>${EUR(worth(p))}</b>${p.jf.length?' · 🎟️ carta Esci di prigione':''}</p>${p.items&&p.items.length?`<p>🧺 Oggetti del mercatino: ${p.items.map(x=>x[1]+' '+esc(x[0])+' <small style="color:'+RARC[x[3]]+'">('+RAR[x[3]]+')</small>').join(', ')}. Si vendono alla banca alla Partenza.</p>`:''}${me&&GM.debt&&GM.debt.pl===p?`<div class="ctrl" style="align-items:center"><b style="color:#ffb3a8">Devi pagare ${EUR(GM.debt.amt)}.</b><button class="big pri" id="pPay" ${p.cash<GM.debt.amt?'disabled':''}>Paga adesso</button></div>`:''}${me?'<p>Puoi costruire su ogni via di una serie completa. Clicca il nome di una via per vederla e decorarla.</p>':''}${rows||'<p>Nessuna proprietà.</p>'}<button class="big" id="mX">Chiudi</button>`);
   $('pm').textContent='Proprietà di '+p.name;$('mX').onclick=()=>{GM.propsOpen=null;modal('');};if($('pPay'))$('pPay').onclick=()=>{if(!GM.debt||GM.debt.pl!==p||p.cash<GM.debt.amt||!GM.debtRes)return;GM.propsOpen=null;modal('');GM.debtRes(true);};
   $('modal').querySelectorAll('.pmn').forEach(e=>e.onclick=()=>{GM.propsOpen=null;modal('');select(+e.dataset.i);});
   $('modal').querySelectorAll('button[data-a]').forEach(e=>e.onclick=()=>{const i=+e.dataset.i,a=e.dataset.a;if(!canAct()||actor()!==p)return;
@@ -1118,7 +1141,7 @@ function centroModal(){const free=!GM.on,me=free?demo:actor();if(!free&&!canAct(
 
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
-  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
+  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}${p.items&&p.items.length?' 🧺'+p.items.length:''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
   fxCash();renderHand();seasChip();
   const pl=curP(),t=T[pl.pos];
   const gb=$('gbar');gb.innerHTML='';gb.style.display='';const row=document.createElement('div');row.className='btns';
@@ -1186,6 +1209,8 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   if(m.startsWith('🚓')){fxJail(nm.replace(' va in prigione.',''));for(let k=0;k<6;k++)tone(k%2?620:880,.2,'square',.05,k*.2);}
   else if(m.startsWith('💥')){fxShake();fxBanner('💥 BANCAROTTA!',nm,'#ff5a4d');fxRain(['💸','📉','🧾'],26);}
   else if(m.startsWith('🏆')){fxBanner('🏆 VITTORIA!',nm,'#ffd23d');fxRain(['🎉','🎊','⭐','👑','💶'],70);}
+  else if(m.startsWith('🧺'))fxBanner('🧺 MERCATINO',nm,'#ffd23d',1);
+  else if(m.startsWith('💎')){fxBanner('💎 VENDUTO ALLA BANCA',nm,'#8fd3f4',1);fxRain(['💎','💶','🪙'],16);}
   else if(m.startsWith('🗓️')){const S=SEAS.find(x=>m.includes(x.n+'!'))||SEAS[0];fxBanner(S.ic+' '+S.n.toUpperCase(),S.fx,'#ffffff',1);fxRain(S.rain,40);[523,659,784,1047].forEach((f,k)=>tone(f,.35,'sine',.07,k*.12));}
   else if(m.startsWith('🏗️')){fxBanner('🏗️ GRANDE OPERA!',nm,'#ffd23d');fxRain(['🎉','⭐','🏗️'],34);}
   else if(m.startsWith('🏨')){fxBanner('🏨 ALBERGO!',nm,'#ffd23d');fxRain(['⭐','🛎️','✨'],24);}
@@ -1245,7 +1270,7 @@ function renderHand(){const h=$('hand'),p=GM.on?(NET.on?GM.players[mySeat()]:cur
   $('handS').textContent=(NET.on?'Le tue carte':'Carte di '+p.name)+' · ordine: '+HSORT+' ⇄';
   $('handS').onclick=()=>{HSORT={colore:'valore',valore:'nome',nome:'colore'}[HSORT]||'colore';try{localStorage.setItem('rdb_sort',HSORT);}catch(e){}renderHand();};
   h.querySelectorAll('.hc').forEach(e=>e.onclick=()=>select(+e.dataset.i));}
-function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
+function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺'))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
   else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
@@ -1292,7 +1317,7 @@ function claimModal(){const a=GM.players.map((p,k)=>[p,k]).filter(x=>!x[0].out);
   $('modal').querySelectorAll('.cl').forEach(e=>{e.textContent='Sono '+GM.players[e.dataset.k].name;e.onclick=()=>{GM.players[e.dataset.k].uid=NET.uid;modal('');NET.force=true;ui();};});$('mX').onclick=()=>{NET.spect=true;modal('');};}
 function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(GM.owner[i]);const S={};for(const i in st)S[i]=st[i];
   return {started:true,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
-    players:GM.players.map(p=>({uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out})),
+    players:GM.players.map(p=>({items:p.items||[],uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
     auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,season:GM.season||0,sT:GM.sT||0,
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
@@ -1307,7 +1332,7 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     if(!GM.on||GM.players.length!==s.players.length){GM.players.forEach(p=>scene.remove(p.mesh));
       GM.players=s.players.map(c=>{const col=/^#[0-9a-f]{6}$/i.test(c.color)?c.color:PCOL[0],p={uid:c.uid,name:String(c.name).slice(0,14),color:col,shape:c.shape,cash:c.cash,pos:c.pos,jail:c.jail,jf:c.jf||[],out:!!c.out,mesh:makeToken(c.shape,col)};if(!p.out)scene.add(p.mesh);return p;});
       GM.on=true;demo.mesh.visible=false;GM.owner={};GM.mort={};GM.log=[];GM.players.forEach(p=>p.mesh.position.copy(slot(p,p.pos)));if($('modal').classList.contains('show'))modal('');}
-    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
+    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.items=Array.isArray(c.items)?c.items.filter(x=>Array.isArray(x)&&x.length===4).slice(0,MKT_MAX).map(x=>[String(x[0]).slice(0,40),String(x[1]).slice(0,4),+x[2]||0,Math.max(0,Math.min(3,x[3]|0))]):[];p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
     GM.cur=s.cur;GM.phase=s.phase;GM.busy=!!s.busy;GM.dbl=s.dbl||0;GM.again=!!s.again;GM.decks=s.decks||GM.decks;
     if(s.dice&&(s.roll||0)!==(GM.roll||0)){const d=$('dice');d.style.display='';d.textContent=`🎲 ${s.dice[0]} + ${s.dice[1]} = ${s.dice[0]+s.dice[1]}`;if(!first)rollDiceAnim(s.dice[0],s.dice[1]);}GM.dice=s.dice||[0,0];GM.roll=s.roll||0;
     const no={},nm={};for(const i in (s.owner||{}))no[i]=GM.players[s.owner[i]];(s.mort||[]).forEach(i=>nm[i]=true);
