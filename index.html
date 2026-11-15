@@ -156,7 +156,7 @@ details .in{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
 <body>
 <div class="app">
   <div id="wrap">
-    <div class="hud"><div id="players"></div><div class="chip" id="dice" style="display:none"></div><span id="where" style="display:none"></span></div>
+    <div class="hud"><div id="players"></div><div class="chip" id="dice" style="display:none"></div><div class="chip" id="seas" style="display:none;cursor:help"></div><span id="where" style="display:none"></span></div>
     <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bM" title="Musica">🎵</button><button id="bP" class="on" title="Mostra o nascondi il pannello di destra">📝</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
     <div id="fx"></div>
     <div id="diceBox"><div class="die" id="d1"></div><div class="die" id="d2"></div></div>
@@ -339,8 +339,14 @@ function wrapText(x,txt,cx,y,maxW,lh){const w=txt.split(' ');let line='',lines=[
   lines.forEach((l,n)=>x.fillText(l,cx,y+n*lh));return lines.length;}
 
 /* il mondo: prato, colline lontane, alberi */
+let SEASON=0,snowP=null;const SEASM=[],PINE=['#2c6a3d','#2a6238'],AUT=['#d9822b','#c0392b','#e0b030','#a8552a'];
+function seasonTint(m){const u=m.userData,c=new THREE.Color(),s=SEASON,pine=PINE.includes(u.col),L=(hex,a)=>m.color.lerp(c.set(hex).convertSRGBToLinear(),a);m.color.copy(u.base);
+  if(u.sk==='grass'){if(s===1)L('#c9c04a',.3);if(s===2)L('#a89a4e',.42);if(s===3)L('#f3f7fc',.9);}
+  else{if(s===1)L('#2f7a2f',.15);if(s===2&&!pine)L(AUT[Math.max(0,['#3f8f45','#4f9f4a','#357c40','#5aa850'].indexOf(u.col))],.85);if(s===3)L('#eef3f8',pine?.5:.78);}}
+function seasonReg(m,kind,col){if(m.userData.sk)return m;m.userData.sk=kind;m.userData.col=col;m.userData.base=m.color.clone();SEASM.push(m);if(SEASON)seasonTint(m);return m;}
+{const o=MT;MT=function(kind,col,rx,ry){const m=o(kind,col,rx,ry);return kind==='grass'||kind==='leaf'?seasonReg(m,kind,col):m;};}
 {const gt=TX.grass.clone();gt.needsUpdate=true;gt.repeat.set(130,130);
- const m=new THREE.MeshStandardMaterial({color:'#86c46a',map:gt,bumpMap:gt,bumpScale:.03,roughness:1});m.color.convertSRGBToLinear();
+ const m=new THREE.MeshStandardMaterial({color:'#86c46a',map:gt,bumpMap:gt,bumpScale:.03,roughness:1});m.color.convertSRGBToLinear();seasonReg(m,'grass','#86c46a');
  const t=new THREE.Mesh(new THREE.PlaneGeometry(420,420),m);t.rotation.x=-Math.PI/2;t.position.y=-.012;t.receiveShadow=true;scene.add(t);
  const c=new THREE.Mesh(new THREE.PlaneGeometry(2*H-2*TD,2*H-2*TD),MT('grass','#8fce6e'));c.rotation.x=-Math.PI/2;c.position.y=.001;c.receiveShadow=true;scene.add(c);}
 
@@ -499,7 +505,16 @@ function lifeTick(now){const T4=now/1000;movers.forEach(m=>{let x,z,ry;
   if(m.line){const [x1,z1,x2,z2]=m.line,len=Math.hypot(x2-x1,z2-z1),u=((T4*m.sp/len/2+m.t0)%1+1)%1,f=u<.5?u*2:2-u*2,fw=u<.5?1:-1;x=x1+(x2-x1)*f;z=z1+(z2-z1)*f;ry=Math.atan2(-(z2-z1)*fw,(x2-x1)*fw);}
   else{const t=((m.t0+m.dir*T4*m.sp/(8*m.R))%1+1)%1,k=Math.floor(t*4),u=(t*4-k)*2-1,R=m.R;[x,z,ry]=k===0?[u*R,-R,0]:k===1?[R,u*R,-Math.PI/2]:k===2?[-u*R,R,Math.PI]:[-R,-u*R,Math.PI/2];if(m.dir<0)ry+=Math.PI;}
   m.g.position.set(x,m.bob!==undefined?Math.abs(Math.sin(T4*7*m.sp+m.bob))*.035:0,z);m.g.rotation.y=m.bob!==undefined?ry+Math.PI/2:ry;});}
-function skyTick(now){clouds.forEach(c=>{const a=c.userData.a+now*c.userData.v*4e-6;c.position.x=Math.cos(a)*c.userData.R;c.position.z=Math.sin(a)*c.userData.R;});
+function seasonLight(){if(night)return;const s=SEASON;sun.color.set([0xfff0d8,0xfff3c4,0xffd9a8,0xe8f0ff][s]);sun.intensity=[1.45,1.6,1.3,1.25][s];scene.fog.color.set([0xcfe0f0,0xd6e6f2,0xe2d8c6,0xe6edf4][s]);}
+function setSeason(s){SEASON=s=((s|0)%4+4)%4;SEASM.forEach(seasonTint);const w=M('#2f79b0',{roughness:.05,metalness:.75});if(!w.userData.base)w.userData.base=w.color.clone();w.color.copy(w.userData.base);
+  if(s===3){w.color.lerp(new THREE.Color('#d4e9f4').convertSRGBToLinear(),.85);w.roughness=.4;}else w.roughness=.05;
+  if(!snowP){const N=1600,pos=new Float32Array(N*3),r=rnd(4242);for(let i=0;i<N;i++){pos[i*3]=(r()-.5)*72;pos[i*3+1]=r()*24;pos[i*3+2]=(r()-.5)*72;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    snowP=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:.17,transparent:true,opacity:.9,depthWrite:false,fog:false}));snowP.frustumCulled=false;scene.add(snowP);}
+  snowP.visible=s!==1;snowP.geometry.setDrawRange(0,[220,0,380,1600][s]);snowP.material.color.set([0xffb7d5,0xffffff,0xd9822b,0xffffff][s]);snowP.material.size=[.16,.1,.22,.17][s];seasonLight();seasChip();}
+function seasChip(){const c=$('seas');if(!c)return;const S=SEAS[SEASON];c.style.display='';c.title=S.fx;if(GM.on){const left=Math.max(1,SEAS_LEN*alive().length-(GM.sT||0));c.textContent=`${S.ic} ${S.n} · cambia tra ${left} ${left===1?'turno':'turni'}`;}else c.textContent=S.ic+' '+S.n;}
+function seasonTick(now){if(!snowP||!snowP.visible)return;const p=snowP.geometry.attributes.position,a=p.array,n=snowP.geometry.drawRange.count,w=SEASON===3,sp=w?.055:.026;
+  for(let i=0;i<n;i++){a[i*3+1]-=sp*(1+(i%5)*.15);a[i*3]+=Math.sin(now*.001+i)*(w?.006:.02);if(a[i*3+1]<0)a[i*3+1]=24;}p.needsUpdate=true;}
+function skyTick(now){seasonTick(now);clouds.forEach(c=>{const a=c.userData.a+now*c.userData.v*4e-6;c.position.x=Math.cos(a)*c.userData.R;c.position.z=Math.sin(a)*c.userData.R;});
   if(balloon){const a=now*2.2e-5;balloon.position.set(Math.cos(a)*31,10+Math.sin(now/4000)*.6,Math.sin(a)*31);}}
 function blob(seed){const g=new THREE.IcosahedronGeometry(1,3),p=g.attributes.position,n=g.attributes.normal,v=new THREE.Vector3();
   for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).normalize();n.setXYZ(i,v.x,v.y,v.z);
@@ -701,7 +716,7 @@ function halo(col,size){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:
 function setNight(n){night=n;CLOUDM.color.set(n?0x4a5580:0xffffff).convertSRGBToLinear();scene.background=n?SKY.n:SKY.d;scene.environment=n?SKY.ne:SKY.de;
   sun.intensity=n?.5:1.45;sun.color.set(n?0x9db4ff:0xfff0d8);hemi.intensity=n?.26:.22;scene.fog.color.set(n?0x0c1434:0xcfe0f0);renderer.toneMappingExposure=n?1.38:.92;
   glassMats.forEach(m=>{m.emissive.set(n?'#ffb44a':'#000000');if(n)m.emissive.convertSRGBToLinear();m.emissiveIntensity=n?.9:0;});
-  halos=halos.filter(h=>h.parent);halos.forEach(h=>h.visible=n);
+  halos=halos.filter(h=>h.parent);halos.forEach(h=>h.visible=n);seasonLight();
   document.getElementById('bN').textContent=n?'☀️':'🌙';}
 
 /* ================= TEMI DELLA SERIE COMPLETA ================= */
@@ -800,7 +815,7 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(pl===curP()){const d=PATH[to].clone().sub(PATH[pl.pos]);if(d.lengthSq()>.01)dir.copy(d.normalize());yawOff=0;}
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=0;segs.push({pl,a,b,t0:performance.now(),to,res,dur:dur||250});SFX.step();});}
-async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monInc(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);ui();}}face(pl);}
+async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);ui();}}face(pl);}
 const goTo=(pl,i)=>advance(pl,(i-pl.pos+40)%40);
 async function back(pl,n){for(let k=0;k<n;k++)await hop(pl,(pl.pos+39)%40);face(pl);}
 async function toJail(pl){pl.jail=1;GM.dbl=0;say(`🚓 ${pl.name} va in prigione.`);await hop(pl,10,600);face(pl);}
@@ -832,8 +847,8 @@ function checkThemes(){G.forEach((_,g)=>{if(grp[g].theme&&!GM.players.some(p=>!p
 function buy(pl,i){pl.cash-=T[i].p;GM.owner[i]=pl;updateOwner(i);say(`🏠 ${pl.name} compra ${T[i].n} per ${EUR(T[i].p)}.`);ui();}
 function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return 0;
   if(t.t==='prop'){const lv=st[i].lv;return lv?t.r[lv]:(hasSet(o,t.g)?t.r[0]*2:t.r[0]);}
-  if(t.t==='sta')return 25*Math.pow(2,RR.filter(k=>GM.owner[k]===o).length-1)*(mult?2:1);
-  return dice*(mult||UT.every(k=>GM.owner[k]===o)?10:4);}
+  if(t.t==='sta')return 25*Math.pow(2,RR.filter(k=>GM.owner[k]===o).length-1)*(mult?2:1)*(i===35&&GM.season===3?2:1);
+  return Math.round(dice*(mult||UT.every(k=>GM.owner[k]===o)?10:4)*(GM.season===1?1.5:1));}
 function whyNoBuild(pl,i){const t=T[i],s=st[i];if(!s)return 'Qui non si costruisce.';if(GM.owner[i]!==pl)return 'Questa via non è tua.';if(!hasSet(pl,t.g))return 'Ti serve tutta la serie '+GN[t.g]+'.';
   const ids=groupIds(t.g);if(ids.some(k=>GM.mort[k]))return 'Una via della serie è ipotecata.';if(s.lv>=5)return "C'è già l'albergo.";
   if(pl.cash<HC[t.g])return 'Non hai abbastanza soldi.';
@@ -888,6 +903,16 @@ function tradeResolve(ok){const t=GM.trade;if(!t||GM.phase!=='trade')return;cons
 /* carte: testi nostri, stessi effetti e stesse quantità del gioco classico */
 const mvTo=i=>async pl=>{await goTo(pl,i);await land(pl);},near=list=>async pl=>{const i=list.find(k=>k>pl.pos);await goTo(pl,i===undefined?list[0]:i);await land(pl,true);};
 const gain=n=>async pl=>{pl.cash+=n;ui();},lose=n=>async pl=>{await pay(pl,n,null);};
+const SEAS_LEN=3,SEAS=[
+ {n:'Primavera',ic:'🌸',fx:'Stadio e fontana rendono il 50% in più.',mon:{stadio:1.5,fontana:1.5},rain:['🌸','🌷','🐝'],cards:[
+  ['🌸 Fioritura: arrivano i turisti. Ritira '+EUR(70)+'.',gain(70)],['🌸 Allergia ai pollini: paghi '+EUR(30)+' in farmacia.',lose(30)],['🌸 Pulizie di primavera: paghi '+EUR(50)+'.',lose(50)],['🌸 Giornata splendida: avanza di 3 caselle.',async pl=>{await advance(pl,3);await land(pl);}]]},
+ {n:'Estate',ic:'☀️',fx:'Resort doppio, ruota +50%, seggiovia a metà. Diga e acquedotto: affitto +50%.',mon:{resort:2,ruota:1.5,seggiovia:.5},rain:['☀️','🍦','🏖️'],cards:[
+  ['☀️ La tua gelateria fa il pieno: ritira '+EUR(90)+'.',gain(90)],['☀️ Condizionatore rotto: paghi '+EUR(50)+'.',lose(50)],['☀️ Gita al lago, offri tu: paghi '+EUR(10)+' a ogni giocatore.',async pl=>{for(const o of alive())if(o!==pl&&!pl.out)await pay(pl,10,o);}],['☀️ Turisti ovunque: ritira '+EUR(20)+' per ogni tua proprietà.',async pl=>{pl.cash+=20*owned(pl).length;ui();}]]},
+ {n:'Autunno',ic:'🍂',fx:'Castello, torre e osservatorio rendono il 50% in più.',mon:{castello:1.5,torre:1.5,osserv:1.5},rain:['🍂','🍁','🌰'],cards:[
+  ['🍂 Vendemmia riuscita: ritira '+EUR(80)+'.',gain(80)],['🍂 Foglie nelle grondaie: paghi '+EUR(40)+'.',lose(40)],['🍂 Castagnata in piazza: ogni giocatore ti dà '+EUR(10)+'.',async pl=>{for(const o of alive())if(o!==pl)await pay(o,10,pl);}],['🍂 Nebbia fitta: torna indietro di 2 caselle.',async pl=>{await back(pl,2);await land(pl);}]]},
+ {n:'Inverno',ic:'❄️',fx:'Seggiovia doppia (anche la stazione del Nevegal), osservatorio +50%, resort a metà.',mon:{seggiovia:2,osserv:1.5,resort:.5},rain:['❄️','⛄','🎿'],cards:[
+  ['❄️ Hai spalato la neve a tutta la via: ritira '+EUR(60)+'.',gain(60)],['❄️ Gomme da neve nuove: paghi '+EUR(70)+'.',lose(70)],['❄️ Strada ghiacciata: torna indietro di 3 caselle.',async pl=>{await back(pl,3);await land(pl);}],['❄️ Settimana bianca: vai alla Seggiovia del Nevegal. Se passi dalla Partenza ritira '+EUR(200)+'.',mvTo(35)]]}];
+const monNow=t=>Math.round(monInc(t)*((SEAS[GM.season||0].mon||{})[t]||1));
 const repair=(h,H)=>async pl=>{const c=owned(pl).reduce((a,i)=>a+(st[i]?(st[i].lv===5?H:st[i].lv*h):0),0);if(c){say(`${pl.name} paga ${EUR(c)} di lavori.`);await pay(pl,c,null);}};
 const CARDS={ch:[
  ['Torna alla Partenza e ritira '+EUR(200)+'.',mvTo(0)],
@@ -939,7 +964,8 @@ cc:[
  ['Affitti la mansarda ai turisti: ritira '+EUR(90)+'.',gain(90)],
  ["Revisione dell'auto: paghi "+EUR(45)+'.',lose(45)],
  ['Hai sbagliato strada: torna indietro di 2 caselle.',async pl=>{await back(pl,2);await land(pl);}]]};
-async function drawCard(pl,k){const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
+async function drawCard(pl,k){if(k==='ch'&&Math.random()<.34){const L=SEAS[GM.season||0].cards,c=L[Math.floor(Math.random()*L.length)];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);await c[1](pl);return;}
+  const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
   if(c[2])pl.jf.push([k,id]);else d.push(id);await c[1](pl);}
 
 /* dadi animati */
@@ -972,13 +998,14 @@ async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&
   if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}const nx=(again&&!pl.jail)?'roll':'end';GM.after=nx;if(GM.phase!=='auction'){GM.phase=nx;if(nx==='roll')say(`Doppio: ${pl.name} tira ancora.`);}}
   ui();}
 function endTurn(){if(GM.phase!=='end'||GM.busy)return;GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
+  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx}`);}
   GM.phase=pl.jail?'jail':'roll';say(`Tocca a ${pl.name}.`);ui();}
 function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.cash-=BAIL;pl.jail=0;GM.phase='roll';say(`${pl.name} paga ${EUR(BAIL)} ed esce di prigione.`);ui();}
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
 function startGame(cfg){GM.players.forEach(p=>scene.remove(p.mesh));GM.owner={};GM.mort={};GM.log=[];GM.debt=null;GM.auction=null;GM.trade=null;GM.busy=false;GM.dbl=0;
   for(const i in st){st[i].lv=0;rebuild(+i);}for(const i in ownG)updateOwner(+i);G.forEach((_,g)=>{grp[g].theme='';applyTheme(g);});
   ['ch','cc'].forEach(k=>{const d=[...Array(CARDS[k].length).keys()];for(let n=d.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[d[n],d[j]]=[d[j],d[n]];}GM.decks[k]=d;});
-  GM.roll=0;GM.again=false;NET.won=false;GM.centro={};PLOTS.forEach((_,k)=>buildCentro(k));GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,mesh:makeToken(c.shape,c.color)}));
+  GM.roll=0;GM.again=false;NET.won=false;GM.season=0;GM.sT=0;setSeason(0);GM.centro={};PLOTS.forEach((_,k)=>buildCentro(k));GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,mesh:makeToken(c.shape,c.color)}));
   GM.players.forEach(p=>scene.add(p.mesh));demo.mesh.visible=false;GM.on=true;GM.cur=0;GM.phase='roll';GM.players.forEach(p=>p.mesh.position.copy(slot(p,0)));pawn=GM.players[0].mesh;face(GM.players[0]);
   say(`Si parte! Tocca a ${GM.players[0].name}.`);select(0);ui();}
 async function autoPlay(turns){GM.fast=true;let n=0;for(;n<turns&&GM.phase!=='over';n++){const pl=curP();
@@ -1081,7 +1108,7 @@ function centroModal(){const free=!GM.on,me=free?demo:actor();if(!free&&!canAct(
   if(free&&plot<0)plot=0;
   if(plot<0){modal(`<h2>🏗️ Centro pieno</h2><p>Tutti i lotti del centro sono occupati.</p><button class="big" id="mX">Chiudi</button>`);$('mX').onclick=()=>modal('');return;}
   const draw=()=>{const kind=PLOTS[plot][2]||'';if(type&&((MONS.find(x=>x[0]===type)||[])[3]||'')!==kind)type='';
-    modal(`<h2>🏗️ ${free?'Opere del centro':'Costruisci in centro'}</h2><p>${free?`In partita queste opere si sbloccano quando un giocatore ha almeno ${EUR(RICH)}. Qui puoi provarle tutte liberamente, senza pagare.`:`Hai almeno ${EUR(RICH)}: puoi lasciare il tuo segno su Belluno.`} Ogni opera rende l’8% del suo costo a ogni passaggio dalla Partenza. Sul pendio va la seggiovia, sulla cima l’osservatorio.</p>${free?'<div class="ctrl"><button class="big act" id="cAll">✨ Mostra tutte le opere</button><button class="big" id="cNone">Togli tutte</button></div>':''}<div class="lab">Dove</div><div class="ctrl" style="flex-wrap:wrap">${PLOTS.map((_,k)=>`<button class="cp ${k===plot?'on':''}" data-k="${k}" ${GM.centro[k]&&!free?'disabled':''}>${plotName(k)}${free&&GM.centro[k]?' ✓':''}</button>`).join('')}</div><div class="lab">Cosa</div>${MONS.filter(m=>(m[3]||'')===kind).map(([key,n,c])=>`<button class="big cm ${key===type?'on':''}" data-t="${key}" ${!free&&me.cash<c?'disabled':''}>${n} · ${EUR(c)} · rende ${EUR(monInc(key))} a giro</button>`).join('')}<div class="ctrl"><button class="big pri" id="cGo" ${type?'':'disabled'}>${free?'Mostra qui':'Costruisci'}</button>${free&&GM.centro[plot]?'<button class="big" id="cDel">Togli da qui</button>':''}<button class="big" id="mX">${free?'Chiudi':'Annulla'}</button></div>`);
+    modal(`<h2>🏗️ ${free?'Opere del centro':'Costruisci in centro'}</h2><p>${free?`In partita queste opere si sbloccano quando un giocatore ha almeno ${EUR(RICH)}. Qui puoi provarle tutte liberamente, senza pagare.`:`Hai almeno ${EUR(RICH)}: puoi lasciare il tuo segno su Belluno.`} Ogni opera rende l’8% del suo costo a ogni passaggio dalla Partenza. Sul pendio va la seggiovia, sulla cima l’osservatorio.</p>${free?'<div class="ctrl"><button class="big act" id="cAll">✨ Mostra tutte le opere</button><button class="big" id="cNone">Togli tutte</button></div>':''}<div class="lab">Dove</div><div class="ctrl" style="flex-wrap:wrap">${PLOTS.map((_,k)=>`<button class="cp ${k===plot?'on':''}" data-k="${k}" ${GM.centro[k]&&!free?'disabled':''}>${plotName(k)}${free&&GM.centro[k]?' ✓':''}</button>`).join('')}</div><div class="lab">Cosa</div>${MONS.filter(m=>(m[3]||'')===kind).map(([key,n,c])=>`<button class="big cm ${key===type?'on':''}" data-t="${key}" ${!free&&me.cash<c?'disabled':''}>${n} · ${EUR(c)} · rende ${EUR(monNow(key))} a giro${monNow(key)!==monInc(key)?' ('+SEAS[GM.season||0].n.toLowerCase()+')':''}</button>`).join('')}<div class="ctrl"><button class="big pri" id="cGo" ${type?'':'disabled'}>${free?'Mostra qui':'Costruisci'}</button>${free&&GM.centro[plot]?'<button class="big" id="cDel">Togli da qui</button>':''}<button class="big" id="mX">${free?'Chiudi':'Annulla'}</button></div>`);
     if(free){const put=(k,t)=>{if(t)GM.centro[k]={t,o:-1};else delete GM.centro[k];buildCentro(k);};
       $('cAll').onclick=()=>{const gr=MONS.filter(m=>!m[3]);PLOTS.forEach((p,k)=>put(k,p[2]?MONS.find(m=>m[3]===p[2])[0]:gr[k%gr.length][0]));SFX.build();modal('');};
       $('cNone').onclick=()=>{PLOTS.forEach((_,k)=>put(k,''));modal('');};if($('cDel'))$('cDel').onclick=()=>{put(plot,'');draw();};
@@ -1092,14 +1119,14 @@ function centroModal(){const free=!GM.on,me=free?demo:actor();if(!free&&!canAct(
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
   $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
-  fxCash();renderHand();
+  fxCash();renderHand();seasChip();
   const pl=curP(),t=T[pl.pos];
   const gb=$('gbar');gb.innerHTML='';gb.style.display='';const row=document.createElement('div');row.className='btns';
   const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;row.appendChild(b);return b;};
   const S=txt=>{const e=document.createElement('div');e.className='st';e.textContent=txt;gb.appendChild(e);return e;};
   const extra=()=>{const me=NET.on?GM.players[mySeat()]:pl;if(me&&!me.out)B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(me)));};
   const myTurnExtra=()=>{if(alive().length>1)B('🤝 Scambio',()=>tradeModal());extra();if(pl.cash>=RICH&&PLOTS.some((_,k)=>!GM.centro[k]))B('🏗️ Costruisci in centro',centroModal,'act');};
-  if(!GM.on){S('Stai esplorando il mondo');B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;rollDiceAnim(a,b).then(()=>advance(demo,a+b)).then(ui);},'act');B('🏗️ Opere del centro',centroModal);B('▶ Gioca una partita',startModal,'pri');}
+  if(!GM.on){S('Stai esplorando il mondo');B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;rollDiceAnim(a,b).then(()=>advance(demo,a+b)).then(ui);},'act');B('🏗️ Opere del centro',centroModal);B('🗓️ Cambia stagione',()=>{setSeason(SEASON+1);});B('▶ Gioca una partita',startModal,'pri');}
   else if(GM.phase==='auction'&&GM.auction){const a=GM.auction,e=S('');e.innerHTML=`🔨 Asta: <b>${T[a.i].n}</b> · ${a.bid?'offerta più alta '+EUR(a.bid)+' di '+esc(GM.players[a.leader].name):'nessuna offerta'} · ⏱ <b id="aucT">${Math.ceil(Math.max(0,(GM.aucEnd||0)-Date.now())/1000)}</b> s`;
     const who=NET.on?(mySeat()>=0?[mySeat()]:[]):GM.players.map((p,k)=>k);
     const old=document.getElementById('aucIn'),had=old&&document.activeElement===old,min=a.bid+10;if(!(GM.aucIn>=min))GM.aucIn=min;
@@ -1159,6 +1186,7 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   if(m.startsWith('🚓')){fxJail(nm.replace(' va in prigione.',''));for(let k=0;k<6;k++)tone(k%2?620:880,.2,'square',.05,k*.2);}
   else if(m.startsWith('💥')){fxShake();fxBanner('💥 BANCAROTTA!',nm,'#ff5a4d');fxRain(['💸','📉','🧾'],26);}
   else if(m.startsWith('🏆')){fxBanner('🏆 VITTORIA!',nm,'#ffd23d');fxRain(['🎉','🎊','⭐','👑','💶'],70);}
+  else if(m.startsWith('🗓️')){const S=SEAS.find(x=>m.includes(x.n+'!'))||SEAS[0];fxBanner(S.ic+' '+S.n.toUpperCase(),S.fx,'#ffffff',1);fxRain(S.rain,40);[523,659,784,1047].forEach((f,k)=>tone(f,.35,'sine',.07,k*.12));}
   else if(m.startsWith('🏗️')){fxBanner('🏗️ GRANDE OPERA!',nm,'#ffd23d');fxRain(['🎉','⭐','🏗️'],34);}
   else if(m.startsWith('🏨')){fxBanner('🏨 ALBERGO!',nm,'#ffd23d');fxRain(['⭐','🛎️','✨'],24);}
   else if(m.startsWith('🏠')&&m.includes("vince l'asta"))fxBanner('🔨 AGGIUDICATO!',nm,'#ffd23d');
@@ -1266,7 +1294,7 @@ function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(
   return {started:true,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
     players:GM.players.map(p=>({uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
-    auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,
+    auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,season:GM.season||0,sT:GM.sT||0,
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
 function netPush(){if(!NET.on||!NET.started||NET.applying||GM.fast)return;clearTimeout(NET.timer);NET.lastAct=Date.now();NET.timer=setTimeout(()=>{const s=JSON.parse(JSON.stringify(netSnap()));bcast('state',s);
   NET.saving=NET.saving.then(()=>rpc('room_save',{p_code:NET.code,p_state:s})).catch(()=>{});},120);}
@@ -1288,6 +1316,7 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     (s.grp||[]).forEach((g,k)=>{if(grp[k]&&(g.theme!==grp[k].theme||g.light!==grp[k].light)){grp[k].theme=g.theme;grp[k].light=g.light;applyTheme(k);}});
     const n=Math.min((s.log||[]).length,Math.max(0,(s.logN||0)-NET.logN));if(n){s.log.slice(-n).forEach(m=>{GM.log.push(String(m));if(!first)sfxFor(String(m));});$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}NET.logN=s.logN||0;
     GM.debt=s.debt&&GM.players[s.debt.pl]?{pl:GM.players[s.debt.pl],amt:s.debt.amt,to:s.debt.to>=0?GM.players[s.debt.to]:null}:null;
+    if((s.season||0)!==SEASON||(s.season||0)!==(GM.season||0)){GM.season=s.season||0;setSeason(GM.season);}GM.sT=s.sT||0;
     GM.auction=s.auction||null;if(GM.auction)GM.aucEnd=Date.now()+(GM.auction.left||0);GM.trade=s.trade||null;GM.after=s.after||'end';NET.lastAct=Date.now();
     {const nc=s.centro||{};for(let k=0;k<PLOTS.length;k++)if(JSON.stringify(nc[k]||null)!==JSON.stringify(GM.centro[k]||null)){if(nc[k])GM.centro[k]=nc[k];else delete GM.centro[k];buildCentro(k);}}
     pawn=GM.players[GM.cur].mesh;
@@ -1434,7 +1463,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
+window.__dbg={setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
 </script>
 </body>
 </html>
