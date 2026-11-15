@@ -83,25 +83,51 @@ button.on{background:#fff;color:#10162f;border-color:#fff}
 .orn{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .orn button{font-size:13px;padding:7px 8px;text-align:left}
 #custom.off{opacity:.35;pointer-events:none}
+.hint{display:none}
+#tools{position:absolute;right:14px;top:14px;display:flex;gap:6px;z-index:6}
+#tools button{padding:8px 11px;font-size:16px;background:#0b1026cc;backdrop-filter:blur(6px)}
+#tools button.on{background:#fff;color:#10162f}
+#dock{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(860px,calc(100% - 330px));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:5}
+#dock>*{pointer-events:auto}
+#log{position:static;transform:none;width:auto;max-width:100%}
+#gbar{position:static;transform:none;max-width:100%;display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;align-items:center;background:#0b1026e8;border:1px solid #ffffff38;border-radius:18px;padding:10px 14px;backdrop-filter:blur(6px);cursor:default}
+#gbar .st{font-weight:800;font-size:15px;text-align:center;line-height:1.3}
+#gbar .btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#gbar button{font-size:15px;padding:10px 15px;white-space:nowrap}
+.pl{cursor:pointer;pointer-events:auto}
+.pl small{color:var(--mut);font-weight:700;margin-left:4px}
+#chat{left:14px;bottom:14px;width:270px}
+#chatBox{display:none;flex-direction:column;gap:6px}
+#chat.open #chatBox{display:flex}
+#chatTog{align-self:flex-start;background:#0b1026dd}
+#diceBox{position:absolute;left:50%;top:20%;transform:translateX(-50%);display:none;gap:20px;z-index:7;pointer-events:none}
+#diceBox.show{display:flex}
+.die{width:78px;height:78px;border-radius:17px;background:linear-gradient(145deg,#fff,#dfe3f0);box-shadow:0 12px 34px #000b,inset 0 -6px 0 #c7cde0;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:12px;gap:3px}
+.die i{border-radius:50%}.die i.p{background:#17224a}
+.die.roll{animation:dshake .16s linear infinite}
+@keyframes dshake{0%{transform:rotate(-16deg) translateY(-8px)}50%{transform:rotate(14deg) translateY(5px)}100%{transform:rotate(-16deg) translateY(-8px)}}
+details{border:1px solid var(--line);border-radius:12px;background:#0a0f2a;padding:0 10px}
+details summary{cursor:pointer;font-weight:800;padding:10px 2px;list-style:none;font-size:14.5px}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:'▾';float:right;color:var(--mut)}
+details[open] summary::after{content:'▴'}
+details .in{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
+#custom{display:flex;flex-direction:column;gap:8px}
+.pm{display:flex;align-items:center;gap:8px;background:#0a0f2a;border:1px solid var(--line);border-radius:12px;padding:7px 10px;font-size:13.5px;font-weight:700}
+.pm i{width:14px;height:14px;border-radius:4px;flex:none}.pm small{color:var(--mut);font-weight:600}.pm .sp{flex:1}
+.pm button{padding:5px 9px;font-size:13px}.pm a{text-decoration:underline dotted}
 </style>
 </head>
 <body>
 <div class="app">
   <div id="wrap">
-    <div class="hud"><div id="players"></div><div class="chip"><small>La pedina è in</small><span id="where">Partenza</span></div><div class="chip" id="dice" style="display:none"></div></div>
-    <div id="log"></div>
-    <div class="bar" id="gbar"></div>
-    <div class="bar">
-      <button id="bOrbit" class="on">🗺️ Dall'alto</button>
-      <button id="bWalk">🚶 Cammina tra le vie</button>
-      <button id="bN">🌙 Notte</button>
-      <button id="bQ">Qualità: alta</button>
-      <button id="bS">🔊</button>
-      <button id="bNew">⚙️ Nuova partita</button>
-    </div>
-    <div id="chat"><div id="chatLog"></div><div class="chatRow"><input id="chatIn" maxlength="120" placeholder="Scrivi agli amici…"><button data-e="😂">😂</button><button data-e="😱">😱</button><button data-e="💸">💸</button><button data-e="👏">👏</button></div></div>
+    <div class="hud"><div id="players"></div><div class="chip" id="dice" style="display:none"></div><span id="where" style="display:none"></span></div>
+    <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
+    <div id="diceBox"><div class="die" id="d1"></div><div class="die" id="d2"></div></div>
+    <div id="dock"><div id="log"></div><div id="gbar"></div></div>
+    <div id="chat"><div id="chatBox"><div id="chatLog"></div><div class="chatRow"><input id="chatIn" maxlength="120" placeholder="Scrivi agli amici…"><button data-e="😂">😂</button><button data-e="😱">😱</button><button data-e="💸">💸</button><button data-e="👏">👏</button></div></div><button id="chatTog">💬 Chat</button></div>
     <div id="modal"></div>
-    <div class="hint" id="hint">Trascina per girare il tabellone · rotellina per lo zoom · clicca una casella per sceglierla</div>
+    <div class="hint" id="hint"></div>
   </div>
   <aside class="panel">
     <h1>Re di Belluno</h1>
@@ -113,24 +139,18 @@ button.on{background:#fff;color:#10162f;border-color:#fff}
     <div class="ctrl"><button class="big" id="mort">Ipoteca</button></div>
     <p id="why"></p>
     <div id="custom">
-      <div class="lab">Colore muri</div>
-      <div class="sw" id="swWall"></div>
-      <div class="lab" style="margin-top:10px">Colore tetto</div>
-      <div class="sw" id="swRoof"></div>
-      <div class="lab" style="margin-top:10px">Colore persiane e porta</div>
-      <div class="sw" id="swAcc"></div>
-      <div class="lab" style="margin-top:10px">Ornamenti</div>
-      <div class="orn" id="orn"></div>
-      <div class="lab" style="margin-top:10px">Stile delle case</div>
-      <div class="orn" id="styH" style="grid-template-columns:1fr 1fr 1fr"></div>
-      <div class="lab" style="margin-top:10px">Stile dell'albergo</div>
-      <div class="orn" id="styA" style="grid-template-columns:1fr 1fr 1fr"></div>
-      <div class="lab" style="margin-top:10px">Tema della serie completa</div>
-      <div class="orn" id="thm" style="grid-template-columns:1fr 1fr"></div>
-      <div class="lab" style="margin-top:10px">Colore delle luci della serie</div>
-      <div class="sw" id="swL"></div>
+      <details><summary>🎨 Colori</summary><div class="in">
+        <div class="lab">Muri</div><div class="sw" id="swWall"></div>
+        <div class="lab">Tetto</div><div class="sw" id="swRoof"></div>
+        <div class="lab">Persiane e porta</div><div class="sw" id="swAcc"></div></div></details>
+      <details><summary>🌳 Ornamenti</summary><div class="in"><div class="orn" id="orn"></div></div></details>
+      <details><summary>🏠 Stile di case e albergo</summary><div class="in">
+        <div class="lab">Case</div><div class="orn" id="styH" style="grid-template-columns:1fr 1fr 1fr"></div>
+        <div class="lab">Albergo</div><div class="orn" id="styA" style="grid-template-columns:1fr 1fr 1fr"></div></div></details>
+      <details><summary>✨ Tema della serie completa</summary><div class="in">
+        <div class="orn" id="thm" style="grid-template-columns:1fr 1fr"></div>
+        <div class="lab">Colore delle luci</div><div class="sw" id="swL"></div></div></details>
     </div>
-    <p>Il tema vale per tutto il gruppo di colore. Nel gioco vero lo potrà usare solo chi ha la serie completa.</p>
   </aside>
 </div>
 
@@ -145,7 +165,7 @@ const HC=[50,50,100,100,150,150,200,200];
 const P=(n,g,p,r)=>({t:'prop',n,g,p,r});
 const S=(n,ic)=>({t:'sta',n,ic,p:200});
 const T=[
- {t:'corner',n:'Partenza',ic:'🚀',sub:'Ritira 200 €',c:'#1fb25a'},
+ {t:'corner',n:'Partenza',ic:'🚀',sub:'Ritira 200.000 €',c:'#1fb25a'},
  P('Borgo Prà',0,60,[2,10,30,90,160,250]),
  {t:'cc',n:'Cassa comune',ic:'🎁'},
  P('Borgo Piave',0,60,[4,20,60,180,320,450]),
@@ -194,7 +214,7 @@ const st={};
 T.forEach((t,i)=>{if(t.t==='prop')st[i]={lv:0,wall:WALLS[0],roof:G[t.g],orn:{com:true,alb:true,ban:false,fio:false,sta:false,lam:false},style:'classica',hstyle:'grand',acc:null};});
 
 /* ================= SCENA ================= */
-const TW=2,TD=3.2,H=(9*TW+2*TD)/2, BAND=1.1;
+const TW=2.7,TD=3.6,H=(9*TW+2*TD)/2,BAND=1.5,KX=TW/2,SH=TD/2-1.6,BS=TW/2;
 const wrap=document.getElementById('wrap');
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2.5));
@@ -299,7 +319,7 @@ function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);
 function cobble(x,W,Hh,seed){const r=rnd(seed);x.fillStyle='#5f5b56';x.fillRect(0,0,W,Hh);
   for(let y=0,row=0;y<Hh;y+=20,row++){let px=row%2?-12:0;while(px<W){const sw=20+r()*15,v=148+r()*52;x.fillStyle=`rgb(${v+8},${v+3},${v-8})`;rr(x,px+1.2,y+1.2,sw-2.4,17.6,4.5);x.fill();px+=sw;}}}
 function tileCanvas(t,corner,idx){
-  const K=1.5,W=corner?410:256,Hh=410,c=cv(W*K,Hh*K),x=c.getContext('2d');x.scale(K,K);
+  const K=1.5,W=corner?410:Math.round(256*TW/2),Hh=corner?410:Math.round(410*TD/3.2),c=cv(W*K,Hh*K),x=c.getContext('2d');x.scale(K,K);
   x.textAlign='center';x.textBaseline='middle';cobble(x,W,Hh,idx*13+5);
   if(corner){
     x.fillStyle=t.c;x.beginPath();x.arc(W/2,Hh/2,168,0,7);x.fill();x.lineWidth=8;x.strokeStyle='#fff';x.stroke();
@@ -312,7 +332,7 @@ function tileCanvas(t,corner,idx){
       x.lineWidth=9;x.strokeStyle=G[t.g];x.strokeRect(4.5,4.5,W-9,bh-9);}
     else{x.fillStyle='#fff';x.beginPath();x.arc(W/2,bh/2+6,56,0,7);x.fill();x.font='74px serif';x.fillText(t.ic,W/2,bh/2+10);}
     x.font='800 25px Outfit,sans-serif';
-    const words=t.n.toUpperCase(),tmp=[];let line='';words.split(' ').forEach(k=>{const q=line?line+' '+k:k;if(x.measureText(q).width>212&&line){tmp.push(line);line=k}else line=q});tmp.push(line);
+    const words=t.n.toUpperCase(),tmp=[];let line='';words.split(' ').forEach(k=>{const q=line?line+' '+k:k;if(x.measureText(q).width>W-44&&line){tmp.push(line);line=k}else line=q});tmp.push(line);
     const hh=tmp.length*29+22,y0=bh+22;
     x.fillStyle=isP?G[t.g]:'#17224a';rr(x,10,y0,W-20,hh,14);x.fill();x.lineWidth=4;x.strokeStyle='#fff';x.stroke();
     x.fillStyle=isP?GT[t.g]:'#fff';tmp.forEach((l,n)=>x.fillText(l,W/2,y0+11+14.5+n*29));
@@ -343,10 +363,10 @@ function buildBoard(){
     const w=p.corner?TD:TW;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,TD),new THREE.MeshStandardMaterial({map:tex(tileCanvas(t,p.corner,i)),roughness:.88,envMapIntensity:.35}));
     m.rotation.x=-Math.PI/2;m.position.y=.004;m.receiveShadow=true;m.userData.i=i;g.add(m);tileMeshes.push(m);
-    if(t.t==='prop'){const b=new THREE.Group();b.position.set(0,0,-TD/2+BAND/2);g.add(b);bldG[i]=b;const tg=new THREE.Group();g.add(tg);themeG[i]=tg;}
-    if(!p.corner){const sg=streetSign(t);sg.position.set(-.95,0,-.2);g.add(sg);if(i%2){const lm=lamp();lm.position.set(.98,0,1.5);g.add(lm);}}
+    if(t.t==='prop'){const b=new THREE.Group();b.position.set(0,0,-TD/2+BAND/2);b.scale.setScalar(BS);g.add(b);bldG[i]=b;const tg=new THREE.Group();tg.position.z=SH;g.add(tg);themeG[i]=tg;}
+    if(!p.corner){const sg=streetSign(t);sg.position.set(-(TW/2-.05),0,-.2+SH);g.add(sg);if(i%2){const lm=lamp();lm.position.set(TW/2-.02,0,1.5+SH);g.add(lm);}}
     if(t.p&&t.t!=='tax'){const og=new THREE.Group();g.add(og);ownG[i]=og;}
-    const off=p.corner?0:.62;
+    const off=p.corner?0:.62+SH;
     PATH[i]=new THREE.Vector3(p.x+Math.sin(p.ry)*off,0,p.z+Math.cos(p.ry)*off);
   });
   // centro: insegna del paese, monti, fiume, chioschi delle carte
@@ -359,7 +379,7 @@ function buildBoard(){
   [[-4.6,-3.4,2.5,2.5,1],[-2.2,-4.8,3.1,3.2,2],[.6,-3.7,2.7,2.7,3],[3.2,-4.8,3,3,4],[5.5,-3.3,2.2,2.2,5],[-6.3,-5,2,1.9,6],[1.8,-6,2.4,2.2,7]].forEach(m=>scene.add(mountain(...m)));
   const riv=new THREE.Mesh(new THREE.PlaneGeometry(17.9,1.1),M('#2f79b0',{roughness:.05,metalness:.75}));riv.rotation.x=-Math.PI/2;riv.rotation.z=.07;riv.position.set(0,.012,-.9);scene.add(riv);
   [-1,1].forEach(k=>{const b=new THREE.Mesh(new THREE.PlaneGeometry(17.9,.22),MT('pave','#cdbf9f'));b.rotation.x=-Math.PI/2;b.rotation.z=.07;b.position.set(0,.011,-.9+k*.62);b.receiveShadow=true;scene.add(b);});
-  for(let n=0;n<34;n++){const a=n*2.4,r=5+((n*37)%40)/10,tx=Math.cos(a)*r*1.25,tz=-1.2+Math.sin(a)*r*.55-2;if(Math.abs(tz+.9)<1)continue;scene.add(tree(tx,tz,.9+(n%3)*.25,n%3===0?1:0));}
+  for(let n=0;n<34;n++){const a=n*2.4,r=5+((n*37)%40)/10,tx=Math.cos(a)*r*1.25,tz=-1.2+Math.sin(a)*r*.55-2;if(Math.abs(tz+.9)<1||PLOTS.some(([px,pz])=>Math.abs(tx-px)<1.9&&Math.abs(tz-pz)<1.8))continue;scene.add(tree(tx,tz,.9+(n%3)*.25,n%3===0?1:0));}
   [['IMPREVISTI','❓','#f7941d',-5.4,.3],['CASSA COMUNE','🎁','#0072bb',5.4,-.3]].forEach(([n,ic,col,dx,rot])=>{
     const c=cv(512,320),x=c.getContext('2d');x.fillStyle=col;x.fillRect(0,0,512,320);x.strokeStyle='#fff';x.lineWidth=14;x.strokeRect(18,18,476,284);
     x.textAlign='center';x.textBaseline='middle';x.font='120px serif';x.fillText(ic,256,125);x.font='900 50px Outfit,sans-serif';x.fillStyle='#fff';x.fillText(n,256,245);
@@ -370,7 +390,7 @@ function buildBoard(){
   });
   // colline e alberi fuori dal paese
   for(let n=0;n<14;n++){const a=n/14*Math.PI*2+.2,R=78+(n%3)*14,m=mountain(Math.cos(a)*R,Math.sin(a)*R,17+(n%4)*4,16+(n*7)%13,n+10);m.castShadow=false;scene.add(m);}
-  const rr2=rnd(99);for(let n=0;n<110;n++){const a=rr2()*6.283,R=15.5+rr2()*38,tx=Math.cos(a)*R,tz=Math.sin(a)*R;if(Math.abs(tx)<14.2&&Math.abs(tz)<14.2)continue;scene.add(tree(tx,tz,1.3+rr2()*1.4,rr2()>.7?1:0));}
+  const rr2=rnd(99);for(let n=0;n<110;n++){const a=rr2()*6.283,R=H+3+rr2()*38,tx=Math.cos(a)*R,tz=Math.sin(a)*R;if(Math.abs(tx)<H+2&&Math.abs(tz)<H+2)continue;scene.add(tree(tx,tz,1.3+rr2()*1.4,rr2()>.7?1:0));}
 }
 function blob(seed){const g=new THREE.IcosahedronGeometry(1,3),p=g.attributes.position,n=g.attributes.normal,v=new THREE.Vector3();
   for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).normalize();n.setXYZ(i,v.x,v.y,v.z);
@@ -518,12 +538,12 @@ function rebuild(i,anim){
 
 /* ================= GIORNO / NOTTE ================= */
 const haloTex=(()=>{const c=cv(128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.22,'rgba(255,255,255,.5)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);})();
-function halo(col,size){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.28,fog:false}));sp.scale.setScalar(size);sp.visible=night;halos.push(sp);return sp;}
+function halo(col,size){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.38,fog:false}));sp.scale.setScalar(size);sp.visible=night;halos.push(sp);return sp;}
 function setNight(n){night=n;scene.background=n?SKY.n:SKY.d;scene.environment=n?SKY.ne:SKY.de;
-  sun.intensity=n?.3:1.45;sun.color.set(n?0x9db4ff:0xfff0d8);hemi.intensity=n?.12:.22;scene.fog.color.set(n?0x0a1030:0xcfe0f0);renderer.toneMappingExposure=n?1.25:.92;
+  sun.intensity=n?.5:1.45;sun.color.set(n?0x9db4ff:0xfff0d8);hemi.intensity=n?.26:.22;scene.fog.color.set(n?0x0c1434:0xcfe0f0);renderer.toneMappingExposure=n?1.38:.92;
   glassMats.forEach(m=>{m.emissive.set(n?'#ffb44a':'#000000');if(n)m.emissive.convertSRGBToLinear();m.emissiveIntensity=n?.9:0;});
   halos=halos.filter(h=>h.parent);halos.forEach(h=>h.visible=n);
-  document.getElementById('bN').textContent=n?'☀️ Giorno':'🌙 Notte';}
+  document.getElementById('bN').textContent=n?'☀️':'🌙';}
 
 /* ================= TEMI DELLA SERIE COMPLETA ================= */
 const THEMES=[['','Nessuno'],['medievale','🏰 Medievale'],['luxury','💎 Luxury'],['hawaii','🌺 Hawaii'],['newyork','🗽 New York'],['neon','⚡ Neon']];
@@ -551,40 +571,40 @@ function applyTheme(gi){const th=grp[gi].theme,L=grp[gi].light,ids=T.map((t,i)=>
   ids.forEach((i,k)=>{const g=themeG[i];while(g.children.length)g.remove(g.children[0]);if(!th)return;
     const first=k===0,last=k===ids.length-1,add=(...m)=>m.forEach(o=>g.add(o)),po={transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2};
     const om=th==='neon'?new THREE.MeshBasicMaterial(Object.assign({map:overlayTex(th),color:new THREE.Color(L).convertSRGBToLinear()},po)):new THREE.MeshStandardMaterial(Object.assign({map:overlayTex(th),roughness:.85},po));
-    const ov=new THREE.Mesh(new THREE.PlaneGeometry(2,2.1),om);ov.rotation.x=-Math.PI/2;ov.position.set(0,.012,.55);ov.receiveShadow=true;add(ov);
-    [-.47,1.57].forEach(z=>add(ns(box(2,.035,.05,L,0,.03,z,EO(L)))));                       // bordi luminosi della strada
-    for(let n=0;n<9;n++){const c=n%2?'#ffffff':L,b=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M(c,EO(c)));b.position.set(-.85+n*.2125,.12,-.5);add(b);}   // luci davanti alla casa
-    const h1=halo(L,2.2);h1.position.set(0,.9,-1.05);const h2=halo(L,1.2);h2.position.set(0,.2,1.57);const h3=halo(L,1.2);h3.position.set(0,.2,-.47);add(h1,h2,h3);
-    const gx=first?.97:-.97,gate=first||last;
+    const ov=new THREE.Mesh(new THREE.PlaneGeometry(TW,2.1),om);ov.rotation.x=-Math.PI/2;ov.position.set(0,.012,.55);ov.receiveShadow=true;add(ov);
+    [-.47,1.57].forEach(z=>add(ns(box(TW,.035,.05,L,0,.03,z,EO(L)))));                       // bordi luminosi della strada
+    for(let n=0;n<9;n++){const c=n%2?'#ffffff':L,b=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M(c,EO(c)));b.position.set((-.85+n*.2125)*KX,.12,-.5);add(b);}   // luci davanti alla casa
+    const h1=halo(L,2.2);h1.position.set(0,1.1,-1.05-SH);const h2=halo(L,1.2);h2.position.set(0,.2,1.57);const h3=halo(L,1.2);h3.position.set(0,.2,-.47);add(h1,h2,h3);
+    const gx=(first?1:-1)*(TW/2-.03),gate=first||last;
     if(th==='medievale'){
-      [-.9,.9].forEach(x=>{const t=torch();t.position.set(x,0,1.52);add(t);});
+      [-.9,.9].forEach(x=>{const t=torch();t.position.set(x*KX,0,1.52);add(t);});
       add(box(.04,1.7,.04,'#4a3220',0,.85,1.62),box(.03,.03,.5,'#4a3220',0,1.62,1.4));const cl=new THREE.Mesh(new THREE.PlaneGeometry(.3,.5),M(L,{side:THREE.DoubleSide,roughness:.9}));cl.rotation.y=Math.PI/2;cl.position.set(0,1.35,1.4);cl.castShadow=true;add(cl);
       if(gate){const sm=MT('pave','#9a948c');[-.62,1.72].forEach(z=>{add(tbox(.36,2.8,.36,sm,gx,1.4,z));for(let a=-1;a<=1;a+=2)for(let b=-1;b<=1;b+=2)add(tbox(.12,.16,.12,sm,gx+a*.12,2.88,z+b*.12));});
         add(tbox(.3,.42,2.1,sm,gx,2.55,.55));for(let n=0;n<6;n++)add(tbox(.3,.16,.2,sm,gx,2.84,-.35+n*.36));
         const bn=new THREE.Mesh(new THREE.PlaneGeometry(.42,.56),M(L,{side:THREE.DoubleSide,roughness:.9}));bn.rotation.y=Math.PI/2;bn.position.set(gx+.17*(first?1:-1),2.06,.55);add(bn);}
     }
     if(th==='luxury'){
-      const gm=M('#d9a520',GOLD);[.44,1.04].forEach(z=>{[-.75,-.25,.25,.75].forEach(x=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(.022,.035,.42,10),gm);c.position.set(x,.21,z);c.castShadow=true;const b=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),gm);b.position.set(x,.44,z);add(c,b);});
-        [-.5,0,.5].forEach(x=>add(ns(box(.5,.022,.022,'#a80f26',x,.36,z))));});
-      [-.8,.8].forEach(x=>{add(box(.14,.12,.14,'#1a1a1a',x,.06,1.52));const b=new THREE.Mesh(new THREE.ConeGeometry(.5,3,18,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(L),transparent:true,opacity:.06,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));b.rotation.x=Math.PI;b.position.set(x,1.6,1.52);b.visible=night;halos.push(b);add(b);});
+      const gm=M('#d9a520',GOLD);[.44,1.04].forEach(z=>{[-.75,-.25,.25,.75].forEach(x=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(.022,.035,.42,10),gm);c.position.set(x*KX,.21,z);c.castShadow=true;const b=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),gm);b.position.set(x*KX,.44,z);add(c,b);});
+        [-.5,0,.5].forEach(x=>add(ns(box(.5*KX,.022,.022,'#a80f26',x*KX,.36,z))));});
+      [-.8*KX,.8*KX].forEach(x=>{add(box(.14,.12,.14,'#1a1a1a',x,.06,1.52));const b=new THREE.Mesh(new THREE.ConeGeometry(.5,3,18,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(L),transparent:true,opacity:.06,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));b.rotation.x=Math.PI;b.position.set(x,1.6,1.52);b.visible=night;halos.push(b);add(b);});
       if(gate){const a=archOf(gm,1.15,1.7,.07);a.position.set(gx,0,.55);add(a);for(let n=0;n<=10;n++){const an=Math.PI*n/10,b=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),M(L,EO(L)));b.position.set(gx,1.7+Math.sin(an)*1.15,.55+Math.cos(an)*1.15);add(b);}}
     }
     if(th==='hawaii'){
-      [-.8,.8].forEach(x=>{const p=palm();p.position.set(x,0,1.85);p.rotation.y=x*3+i;add(p);});const t=torch();t.position.set(0,0,-.42);t.scale.setScalar(.8);add(t);
+      [-.8*KX,.8*KX].forEach(x=>{const p=palm();p.position.set(x,0,1.85);p.rotation.y=x*3+i;add(p);});const t=torch();t.position.set(0,0,-.42);t.scale.setScalar(.8);add(t);
       add(box(.05,1.75,.05,'#c9a24d',0,.87,-.45),box(.05,1.75,.05,'#c9a24d',0,.87,1.55));bulbs(g,0,1.72,['#ff5fa8','#ffd23d','#ffffff','#ff8a3d',L],12,.3,.042,false);
       if(gate){const a=archOf(M('#c9a24d',{roughness:.7}),1.15,1.6,.06);a.position.set(gx,0,.55);add(a);const fc=['#ff5fa8','#ffd23d','#ffffff','#ff8a3d'];for(let n=0;n<=14;n++){const an=Math.PI*n/14,b=new THREE.Mesh(BLOBS[n%3],M(fc[n%4]));b.scale.setScalar(.06);b.position.set(gx,1.6+Math.sin(an)*1.15,.55+Math.cos(an)*1.15);add(b);}}
     }
     if(th==='newyork'){
-      const dk={metalness:.7,roughness:.4};add(box(.05,1.7,.05,'#22262e',.9,.85,1.55,dk),box(.16,.44,.14,'#111111',.9,1.72,1.55));
-      ['#ff3b30','#ffcc00','#34c759'].forEach((c,n)=>{const b=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),M(c,EO(c)));b.position.set(.985,1.86-n*.14,1.55);add(b);});
-      const hy=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.26,12),M('#d21f2b',{roughness:.5}));hy.position.set(-.6,.13,1.5);hy.castShadow=true;const hc=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),M('#d21f2b',{roughness:.5}));hc.position.set(-.6,.27,1.5);add(hy,hc);
+      const dk={metalness:.7,roughness:.4};add(box(.05,1.7,.05,'#22262e',.9*KX,.85,1.55,dk),box(.16,.44,.14,'#111111',.9*KX,1.72,1.55));
+      ['#ff3b30','#ffcc00','#34c759'].forEach((c,n)=>{const b=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),M(c,EO(c)));b.position.set(.9*KX+.085,1.86-n*.14,1.55);add(b);});
+      const hy=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.26,12),M('#d21f2b',{roughness:.5}));hy.position.set(-.6*KX,.13,1.5);hy.castShadow=true;const hc=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),M('#d21f2b',{roughness:.5}));hc.position.set(-.6*KX,.27,1.5);add(hy,hc);
       add(box(.04,2.15,.04,'#22262e',0,1.07,-.45,dk),box(.04,2.15,.04,'#22262e',0,1.07,1.55,dk));bulbs(g,0,2.12,[L,'#ffffff'],14,.28,.045,true);
       if(gate){const a=archOf(M('#22262e',dk),1.15,1.9,.06);a.position.set(gx,0,.55);add(a);const c=cv(512,128),x=c.getContext('2d');x.fillStyle='#0b0b12';x.fillRect(0,0,512,128);x.font='900 76px Outfit,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fff';x.fillText('★ BIG CITY ★',256,68,480);
         const tx=tex(c),sm=new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,emissive:new THREE.Color(L).convertSRGBToLinear(),emissiveIntensity:1.3});[1,-1].forEach(q=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.38),sm);p.rotation.y=q*Math.PI/2;p.position.set(gx+q*.04,2.25,.55);add(p);});add(box(.06,.42,1.54,'#0b0b12',gx,2.25,.55));}
     }
     if(th==='neon'){
       const em=M(L,EO(L));const a=archOf(em,.98,1.35,.035);a.position.set(0,0,.55);a.traverse(o=>o.castShadow=false);add(a);
-      [[-.97,-.47],[-.97,1.57],[.97,-.47],[.97,1.57]].forEach(([x,z])=>add(ns(box(.04,1.1,.04,L,x,.55,z,EO(L)))));const h=halo(L,2);h.position.set(0,1.6,.55);add(h);
+      [[-(TW/2-.03),-.47],[-(TW/2-.03),1.57],[TW/2-.03,-.47],[TW/2-.03,1.57]].forEach(([x,z])=>add(ns(box(.04,1.1,.04,L,x,.55,z,EO(L)))));const h=halo(L,2);h.position.set(0,1.6,.55);add(h);
       if(gate){const b=archOf(M('#ffffff',EO('#ffffff')),1.17,1.7,.05);b.position.set(gx,0,.55);b.traverse(o=>o.castShadow=false);add(b);}
     }
   });}
@@ -609,19 +629,19 @@ const RR=[5,15,25,35],UT=[12,28],START=1500,SAL=200,BAIL=50,ownG={};
 const GM={on:false,players:[],cur:0,phase:'',dbl:0,owner:{},mort:{},dice:[0,0],debt:null,fast:false,busy:false,log:[],decks:{ch:[],cc:[]}};
 const demo={name:'Pedina',mesh:makeToken('pedone','#d9a520'),pos:0,cash:0,jf:[],color:'#d9a520'};scene.add(demo.mesh);
 let pawn=demo.mesh;const segs=[],moving=p=>segs.some(x=>x.pl===p),dir=new THREE.Vector3(-1,0,0);
-const curP=()=>GM.on?GM.players[GM.cur]:demo,actor=()=>GM.debt?GM.debt.pl:(GM.trade?GM.players[GM.trade.to]:(GM.auction?GM.players[GM.auction.turn]:curP())),alive=()=>GM.players.filter(p=>!p.out),d6=()=>1+Math.floor(Math.random()*6);
+const curP=()=>GM.on?GM.players[GM.cur]:demo,actor=()=>GM.debt?GM.debt.pl:(GM.trade?GM.players[GM.trade.to]:curP()),alive=()=>GM.players.filter(p=>!p.out),d6=()=>1+Math.floor(Math.random()*6);
 const groupIds=g=>T.map((t,i)=>t.t==='prop'&&t.g===g?i:-1).filter(i=>i>=0);
 const hasSet=(pl,g)=>groupIds(g).every(i=>GM.owner[i]===pl);
 const owned=pl=>Object.keys(GM.owner).map(Number).filter(i=>GM.owner[i]===pl);
-const $=id=>document.getElementById(id);
-function say(m){GM.log.push(m);if(!NET.applying)NET.logN++;if(GM.fast)return;sfxFor(m);$('log').innerHTML=GM.log.slice(-3).map(x=>`<div>${x}</div>`).join('');}
+const $=id=>document.getElementById(id),esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function say(m){GM.log.push(m);if(!NET.applying)NET.logN++;if(GM.fast)return;sfxFor(m);$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}
 function slot(pl,i){const v=PATH[i].clone(),a=alive(),n=a.length,k=a.indexOf(pl);if(n>1&&k>=0){const an=k/n*Math.PI*2,r=i%10===0?.6:.3;v.x+=Math.cos(an)*r;v.z+=Math.sin(an)*r;}return v;}
 function face(pl){if(pl!==curP())return;const n=(pl.pos+1)%40;dir.copy(PATH[n]).sub(PATH[pl.pos]).normalize();}
 function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(pl===curP()){const d=PATH[to].clone().sub(PATH[pl.pos]);if(d.lengthSq()>.01)dir.copy(d.normalize());yawOff=0;}
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=0;segs.push({pl,a,b,t0:performance.now(),to,res,dur:dur||250});SFX.step();});}
-async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){pl.cash+=SAL;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL)}.`);ui();}}face(pl);}
+async function advance(pl,n){for(let k=0;k<n;k++){await hop(pl,(pl.pos+1)%40,n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).length;pl.cash+=SAL+mo*MON_RENT;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo*MON_RENT)}${mo?' (con le opere in centro)':''}.`);ui();}}face(pl);}
 const goTo=(pl,i)=>advance(pl,(i-pl.pos+40)%40);
 async function back(pl,n){for(let k=0;k<n;k++)await hop(pl,(pl.pos+39)%40);face(pl);}
 async function toJail(pl){pl.jail=1;GM.dbl=0;say(`🚓 ${pl.name} va in prigione.`);await hop(pl,10,600);face(pl);}
@@ -634,7 +654,7 @@ function autoRaise(pl,amt){let guard=200;while(pl.cash<amt&&guard--){const ids=o
 async function pay(pl,amt,to){if(pl.out)return false;
   if(pl.cash<amt){
     if(GM.fast||worth(pl)<amt||(NET.on&&pl!==curP()))autoRaise(pl,amt);
-    else{const ph=GM.phase;GM.debt={pl,amt,to};GM.phase='debt';ui();const ok=await new Promise(r=>GM.debtRes=r);GM.debt=null;GM.phase=ph;if(!ok){bankrupt(pl,to);ui();return false;}}}
+    else{const ph=GM.phase;GM.debt={pl,amt,to};GM.phase='debt';ui();const ok=await new Promise(r=>GM.debtRes=r);amt=GM.debt.amt;GM.debt=null;GM.phase=ph;if(!ok){bankrupt(pl,to);ui();return false;}}}
   if(pl.cash<amt){bankrupt(pl,to);ui();return false;}
   pl.cash-=amt;if(to)to.cash+=amt;ui();return true;}
 function bankrupt(pl,to){pl.out=true;say(`💥 ${pl.name} è in bancarotta${to?': tutto passa a '+to.name:''}.`);
@@ -646,9 +666,9 @@ function bankrupt(pl,to){pl.out=true;say(`💥 ${pl.name} è in bancarotta${to?'
 
 /* proprietà */
 function updateOwner(i){const g=ownG[i];if(!g)return;while(g.children.length)g.remove(g.children[0]);const o=GM.owner[i];if(!o)return;
-  const c=GM.mort[i]?'#7a7a7a':o.color;g.add(ns(box(2,.035,.09,c,0,.03,-.38,{emissive:c,emissiveIntensity:.35})),box(.03,.62,.03,'#dfe3ee',.9,.31,-.38,{metalness:.8,roughness:.3}));
-  const f=new THREE.Mesh(new THREE.PlaneGeometry(.28,.17),M(c,{side:THREE.DoubleSide}));f.rotation.y=Math.PI/2;f.position.set(.9,.52,-.23);g.add(f);
-  if(GM.mort[i]){const d=new THREE.Mesh(new THREE.PlaneGeometry(2,TD),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.42,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.y=.02;g.add(d);}}
+  const c=GM.mort[i]?'#7a7a7a':o.color;g.add(ns(box(TW,.035,.09,c,0,.03,-.38+SH,{emissive:c,emissiveIntensity:.35})),box(.03,.62,.03,'#dfe3ee',TW/2-.1,.31,-.38+SH,{metalness:.8,roughness:.3}));
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(.28,.17),M(c,{side:THREE.DoubleSide}));f.rotation.y=Math.PI/2;f.position.set(TW/2-.1,.52,-.23+SH);g.add(f);
+  if(GM.mort[i]){const d=new THREE.Mesh(new THREE.PlaneGeometry(TW,TD),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.42,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.y=.02;g.add(d);}}
 function checkThemes(){G.forEach((_,g)=>{if(grp[g].theme&&!GM.players.some(p=>!p.out&&hasSet(p,g))){grp[g].theme='';applyTheme(g);}});}
 function buy(pl,i){pl.cash-=T[i].p;GM.owner[i]=pl;updateOwner(i);say(`🏠 ${pl.name} compra ${T[i].n} per ${EUR(T[i].p)}.`);ui();}
 function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return 0;
@@ -657,30 +677,28 @@ function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return
   return dice*(mult||UT.every(k=>GM.owner[k]===o)?10:4);}
 function whyNoBuild(pl,i){const t=T[i],s=st[i];if(!s)return 'Qui non si costruisce.';if(GM.owner[i]!==pl)return 'Questa via non è tua.';if(!hasSet(pl,t.g))return 'Ti serve tutta la serie '+GN[t.g]+'.';
   const ids=groupIds(t.g);if(ids.some(k=>GM.mort[k]))return 'Una via della serie è ipotecata.';if(s.lv>=5)return "C'è già l'albergo.";
-  if(s.lv>Math.min(...ids.map(k=>st[k].lv)))return 'Costruisci in modo uniforme: prima le altre vie della serie.';
   if(pl.cash<HC[t.g])return 'Non hai abbastanza soldi.';
   const all=Object.values(st),hs=all.reduce((a,x)=>a+(x.lv<5?x.lv:0),0),ho=all.filter(x=>x.lv===5).length;
   if(s.lv<4&&hs>=32)return 'La banca ha finito le case.';if(s.lv===4&&ho>=12)return 'La banca ha finito gli alberghi.';return '';}
 function whyNoSell(pl,i){const t=T[i],s=st[i];if(!s||GM.owner[i]!==pl)return 'Questa via non è tua.';if(s.lv<=0)return 'Non ci sono case da vendere.';
-  if(s.lv<Math.max(...groupIds(t.g).map(k=>st[k].lv)))return 'Vendi in modo uniforme: prima le altre vie della serie.';return '';}
+  return '';}
 function whyNoMort(pl,i){const t=T[i];if(GM.owner[i]!==pl)return 'Non è tua.';if(GM.mort[i])return 'È già ipotecata.';if(t.t==='prop'&&groupIds(t.g).some(k=>st[k].lv>0))return 'Prima vendi le case della serie.';return '';}
 function buildHouse(pl,i){pl.cash-=HC[T[i].g];st[i].lv++;rebuild(i,!GM.fast);say(`${pl.name} costruisce in ${T[i].n}.`);}
 function sellHouse(pl,i){pl.cash+=HC[T[i].g]/2;st[i].lv--;rebuild(i);say(`${pl.name} vende una casa in ${T[i].n}.`);}
 function mortgage(pl,i){pl.cash+=T[i].p/2;GM.mort[i]=true;updateOwner(i);say(`${pl.name} ipoteca ${T[i].n}.`);}
 function unmortgage(pl,i){const c=Math.ceil(T[i].p/2*1.1);if(pl.cash<c)return false;pl.cash-=c;delete GM.mort[i];updateOwner(i);say(`${pl.name} riscatta ${T[i].n}.`);return true;}
 
-/* aste: quando una via non viene comprata */
-const nextIn=(turn,act)=>{const n=GM.players.length;for(let k=1;k<=n;k++){const j=(turn+k)%n;if(act.includes(j))return j;}return -1;};
-function startAuction(i){const n=GM.players.length,act=[];for(let k=1;k<=n;k++){const j=(GM.cur+k)%n;if(!GM.players[j].out&&GM.players[j].cash>=10)act.push(j);}
-  if(!act.length){say(`Nessuno può offrire per ${T[i].n}: resta libera.`);return;}
-  GM.auction={i,bid:0,leader:-1,turn:act[0],act};GM.phase='auction';GM.busy=false;say(`🔨 Asta per ${T[i].n}! Comincia ${GM.players[act[0]].name}.`);}
+/* aste a tempo: tutti offrono insieme, allo scadere vince l'offerta più alta */
+const AUC_FIRST=15000,AUC_NEXT=10000;
+function startAuction(i){if(!alive().some(p=>p.cash>=10)){say(`Nessuno può offrire per ${T[i].n}: resta libera.`);return;}
+  GM.auction={i,bid:0,leader:-1,left:AUC_FIRST};GM.aucEnd=Date.now()+AUC_FIRST;GM.phase='auction';GM.busy=false;say(`🔨 Asta per ${T[i].n}! Offrite tutti: ${AUC_FIRST/1000} secondi.`);}
 function auctionEnd(){GM.auction=null;GM.phase=GM.after||'end';GM.busy=false;if(GM.phase==='roll')say(`Doppio: ${curP().name} tira ancora.`);ui();}
-function auctionWin(){const a=GM.auction,w=GM.players[a.leader];w.cash-=a.bid;GM.owner[a.i]=w;updateOwner(a.i);say(`🏠 ${w.name} vince l'asta: ${T[a.i].n} per ${EUR(a.bid)}.`);auctionEnd();}
-function auctionBid(v){const a=GM.auction;if(!a||GM.phase!=='auction')return;const p=GM.players[a.turn];if(v<=a.bid||p.cash<v)return;a.bid=v;a.leader=a.turn;say(`🔨 ${p.name} offre ${EUR(v)}.`);
-  if(a.act.length===1)return auctionWin();a.turn=nextIn(a.turn,a.act);ui();}
-function auctionPass(){const a=GM.auction;if(!a||GM.phase!=='auction')return;const t=a.turn;say(`${GM.players[t].name} passa.`);a.act=a.act.filter(j=>j!==t);
-  if(!a.act.length){say(`Nessuno vuole ${T[a.i].n}: resta libera.`);return auctionEnd();}
-  if(a.act.length===1&&a.leader===a.act[0])return auctionWin();a.turn=nextIn(t,a.act);ui();}
+function auctionBid(seat,v){const a=GM.auction;if(!a||GM.phase!=='auction')return;const p=GM.players[seat];if(!p||p.out||!(v>a.bid)||p.cash<v)return;
+  a.bid=v;a.leader=seat;GM.aucEnd=Date.now()+AUC_NEXT;say(`🔨 ${p.name} offre ${EUR(v)}.`);ui();}
+function auctionClose(){const a=GM.auction;if(!a)return;if(a.leader>=0){const w=GM.players[a.leader];w.cash-=a.bid;GM.owner[a.i]=w;updateOwner(a.i);say(`🏠 ${w.name} vince l'asta: ${T[a.i].n} per ${EUR(a.bid)}.`);}
+  else say(`Nessuna offerta per ${T[a.i].n}: resta libera.`);auctionEnd();}
+function placeBid(seat,v){if(!NET.on||mine())auctionBid(seat,v);else bcast('bid',{seat,v});}
+setInterval(()=>{if(GM.phase!=='auction'||!GM.auction)return;const l=Math.max(0,(GM.aucEnd||0)-Date.now()),e=document.getElementById('aucT');if(e)e.textContent=Math.ceil(l/1000);if(l<=0&&(!NET.on||mine()))auctionClose();},250);
 function fastAuction(i){const c=alive().filter(p=>p.cash>=10).map(p=>[p,Math.min(p.cash,Math.round(T[i].p*(.45+Math.random()*.65)))]).sort((a,b)=>b[1]-a[1]);if(!c.length)return;
   const w=c[0][0],v=Math.max(10,Math.min(c[0][1],(c[1]?c[1][1]:0)+10));w.cash-=v;GM.owner[i]=w;say(`🏠 ${w.name} vince l'asta: ${T[i].n} per ${EUR(v)}.`);}
 
@@ -728,7 +746,15 @@ const CARDS={ch:[
  ['Prendi il treno: vai alla Stazione dei treni. Se passi dalla Partenza ritira '+EUR(200)+'.',mvTo(5)],
  ['Passeggiata di lusso: vai in Piazza dei Martiri.',mvTo(39)],
  ['Ti hanno eletto presidente del quartiere: paghi '+EUR(50)+' a ogni giocatore.',async pl=>{for(const o of alive())if(o!==pl&&!pl.out)await pay(pl,50,o);}],
- ['Il tuo investimento ha reso bene: ritira '+EUR(150)+'.',gain(150)]],
+ ['Il tuo investimento ha reso bene: ritira '+EUR(150)+'.',gain(150)],
+ ['Nevicata sul Nevegal: gli impianti lavorano a pieno ritmo. Ritira '+EUR(80)+'.',gain(80)],
+ ['Hai parcheggiato in divieto in piazza: paghi '+EUR(40)+'.',lose(40)],
+ ['Gita in quota: vai alla Seggiovia del Nevegal. Se passi dalla Partenza ritira '+EUR(200)+'.',mvTo(35)],
+ ['Il Piave si è alzato e ti ha allagato la cantina: paghi '+EUR(60)+'.',lose(60)],
+ ['Hai vinto la gara di sci: ritira '+EUR(120)+'.',gain(120)],
+ ['Hai fretta: avanza di 5 caselle.',async pl=>{await advance(pl,5);await land(pl);}],
+ ['Sagra in piazza, offri tu: paghi '+EUR(20)+' a ogni giocatore.',async pl=>{for(const o of alive())if(o!==pl&&!pl.out)await pay(pl,20,o);}],
+ ['Ti aspettano in Via Mezzaterra. Se passi dalla Partenza ritira '+EUR(200)+'.',mvTo(31)]],
 cc:[
  ['Torna alla Partenza e ritira '+EUR(200)+'.',mvTo(0)],
  ['Errore della banca a tuo favore: ritira '+EUR(200)+'.',gain(200)],
@@ -745,9 +771,24 @@ cc:[
  ['Ti pagano una consulenza: ritira '+EUR(25)+'.',gain(25)],
  ['Lavori stradali davanti ai tuoi edifici: paghi '+EUR(40)+' per ogni casa e '+EUR(115)+' per ogni albergo.',repair(40,115)],
  ['Secondo premio alla sagra del paese: ritira '+EUR(10)+'.',gain(10)],
- ['Hai ricevuto una eredità: ritira '+EUR(100)+'.',gain(100)]]};
+ ['Hai ricevuto una eredità: ritira '+EUR(100)+'.',gain(100)],
+ ['Il Comune ti rimborsa la tassa sui rifiuti: ritira '+EUR(60)+'.',gain(60)],
+ ['Bolletta del gas più alta del previsto: paghi '+EUR(70)+'.',lose(70)],
+ ['Hai vinto il torneo di briscola al bar: ritira '+EUR(30)+'.',gain(30)],
+ ['Colletta per il campanile, e il cassiere sei tu: ogni giocatore ti dà '+EUR(20)+'.',async pl=>{for(const o of alive())if(o!==pl)await pay(o,20,pl);}],
+ ['Multa per la raccolta differenziata: paghi '+EUR(30)+'.',lose(30)],
+ ['Affitti la mansarda ai turisti: ritira '+EUR(90)+'.',gain(90)],
+ ["Revisione dell'auto: paghi "+EUR(45)+'.',lose(45)],
+ ['Hai sbagliato strada: torna indietro di 2 caselle.',async pl=>{await back(pl,2);await land(pl);}]]};
 async function drawCard(pl,k){const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
   if(c[2])pl.jf.push([k,id]);else d.push(id);await c[1](pl);}
+
+/* dadi animati */
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function dieFace(el,n){el.innerHTML=[0,1,2,3,4,5,6,7,8].map(k=>`<i class="${PIPS[n].includes(k)?'p':''}"></i>`).join('');}
+function rollDiceAnim(a,b){if(GM.fast)return Promise.resolve();return new Promise(res=>{const box=$('diceBox'),d1=$('d1'),d2=$('d2');clearTimeout(rollDiceAnim.t);box.classList.add('show');d1.classList.add('roll');d2.classList.add('roll');SFX.dice();
+  const iv=setInterval(()=>{dieFace(d1,d6());dieFace(d2,d6());},80);
+  setTimeout(()=>{clearInterval(iv);d1.classList.remove('roll');d2.classList.remove('roll');dieFace(d1,a);dieFace(d2,b);setTimeout(res,600);rollDiceAnim.t=setTimeout(()=>box.classList.remove('show'),2400);},1100);});}
 
 /* turno */
 async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)select(i);
@@ -760,7 +801,7 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
   else if(t.t==='ch'||t.t==='cc')await drawCard(pl,t.t);
   else if(i===30)await toJail(pl);}
 async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&GM.phase!=='jail'))return;GM.busy=true;
-  const a=d6(),b=d6(),dbl=a===b;GM.dice=[a,b];GM.roll=(GM.roll||0)+1;if(!GM.fast){const d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;SFX.dice();}ui();
+  const a=d6(),b=d6(),dbl=a===b;GM.dice=[a,b];GM.roll=(GM.roll||0)+1;if(!GM.fast){const d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;}ui();await rollDiceAnim(a,b);
   let move=true,again=false;
   if(pl.jail){if(dbl){pl.jail=0;GM.dbl=0;say(`${pl.name} fa doppio ed esce di prigione.`);}
     else{pl.jail++;if(pl.jail>3){say(`Terzo tentativo fallito: ${pl.name} paga ${EUR(BAIL)} ed esce.`);await pay(pl,BAIL,null);pl.jail=0;}else{move=false;say(`${pl.name} resta in prigione.`);}}}
@@ -777,8 +818,8 @@ function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
 function startGame(cfg){GM.players.forEach(p=>scene.remove(p.mesh));GM.owner={};GM.mort={};GM.log=[];GM.debt=null;GM.auction=null;GM.trade=null;GM.busy=false;GM.dbl=0;
   for(const i in st){st[i].lv=0;rebuild(+i);}for(const i in ownG)updateOwner(+i);G.forEach((_,g)=>{grp[g].theme='';applyTheme(g);});
-  ['ch','cc'].forEach(k=>{const d=[...Array(16).keys()];for(let n=15;n>0;n--){const j=Math.floor(Math.random()*(n+1));[d[n],d[j]]=[d[j],d[n]];}GM.decks[k]=d;});
-  GM.roll=0;GM.again=false;NET.won=false;GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,mesh:makeToken(c.shape,c.color)}));
+  ['ch','cc'].forEach(k=>{const d=[...Array(CARDS[k].length).keys()];for(let n=d.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[d[n],d[j]]=[d[j],d[n]];}GM.decks[k]=d;});
+  GM.roll=0;GM.again=false;NET.won=false;GM.centro={};PLOTS.forEach((_,k)=>buildCentro(k));GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,mesh:makeToken(c.shape,c.color)}));
   GM.players.forEach(p=>scene.add(p.mesh));demo.mesh.visible=false;GM.on=true;GM.cur=0;GM.phase='roll';GM.players.forEach(p=>p.mesh.position.copy(slot(p,0)));pawn=GM.players[0].mesh;face(GM.players[0]);
   say(`Si parte! Tocca a ${GM.players[0].name}.`);select(0);ui();}
 async function autoPlay(turns){GM.fast=true;let n=0;for(;n<turns&&GM.phase!=='over';n++){const pl=curP();
@@ -806,27 +847,98 @@ function setupModal(){const rows=SETUP.p.slice(0,SETUP.n).map((p,k)=>`<div class
   m.querySelectorAll('.pnum').forEach(e=>e.onclick=()=>{SETUP.n=+e.dataset.n;setupModal();});
   $('mGo').onclick=()=>{modal('');startGame(SETUP.p.slice(0,SETUP.n));};$('mX').onclick=()=>modal('');}
 
+/* menu personale: le proprietà di un giocatore */
+function propsModal(k){const p=GM.players[k];if(!p)return;GM.propsOpen=k;const me=canAct()&&actor()===p,ids=owned(p).sort((a,b)=>a-b);
+  const rows=ids.map(i=>{const t=T[i],s=st[i],lv=s?s.lv:0,stt=GM.mort[i]?'ipotecata':(t.t==='prop'?(lv===5?'🏨 albergo':lv?'🏠'.repeat(lv):(hasSet(p,t.g)?'serie completa':'')):'');
+    const rent=GM.mort[i]?'niente affitto':(t.t==='util'?'affitto × dadi':'affitto '+EUR(rentOf(i,7,false)));
+    return `<div class="pm"><i style="background:${t.t==='prop'?G[t.g]:'#8892b8'}"></i><a data-i="${i}" class="pmn" style="cursor:pointer">${t.n}</a><small>${stt}</small><span class="sp"></span><small>${rent}</small>${me?`${s?`<button data-a="b" data-i="${i}" title="Costruisci" ${whyNoBuild(p,i)?'disabled':''}>+🏠</button><button data-a="s" data-i="${i}" title="Vendi una casa" ${whyNoSell(p,i)?'disabled':''}>−🏠</button>`:''}<button data-a="m" data-i="${i}" ${GM.mort[i]?(p.cash<Math.ceil(t.p/2*1.1)?'disabled':''):(whyNoMort(p,i)?'disabled':'')}>${GM.mort[i]?'Riscatta':'Ipoteca'}</button>`:''}</div>`;}).join('');
+  modal(`<h2 id="pm"></h2><p>Soldi: <b>${EUR(p.cash)}</b> · Valore totale: <b>${EUR(worth(p))}</b>${p.jf.length?' · 🎟️ carta Esci di prigione':''}</p>${me?'<p>Puoi costruire su ogni via di una serie completa. Clicca il nome di una via per vederla e decorarla.</p>':''}${rows||'<p>Nessuna proprietà.</p>'}<button class="big" id="mX">Chiudi</button>`);
+  $('pm').textContent='Proprietà di '+p.name;$('mX').onclick=()=>{GM.propsOpen=null;modal('');};
+  $('modal').querySelectorAll('.pmn').forEach(e=>e.onclick=()=>{GM.propsOpen=null;modal('');select(+e.dataset.i);});
+  $('modal').querySelectorAll('button[data-a]').forEach(e=>e.onclick=()=>{const i=+e.dataset.i,a=e.dataset.a;if(!canAct()||actor()!==p)return;
+    if(a==='b'&&!whyNoBuild(p,i))buildHouse(p,i);if(a==='s'&&!whyNoSell(p,i))sellHouse(p,i);if(a==='m'){if(GM.mort[i])unmortgage(p,i);else if(!whyNoMort(p,i))mortgage(p,i);}ui();});}
+
+/* pagare un debito cedendo proprietà scelte dal debitore */
+function cedeModal(){const d=GM.debt;if(!d||!d.to)return;const p=d.pl,ids=tradable(p).sort((a,b)=>a-b),val=i=>GM.mort[i]?T[i].p/2:T[i].p;
+  modal(`<h2 id="cdh"></h2><p>Devi ancora <b>${EUR(d.amt)}</b>. Scegli tu quali proprietà cedere. Ognuna vale il suo prezzo (la metà se è ipotecata). Se cedi più del debito, la differenza non torna indietro.</p>${ids.map(i=>`<label class="seat" style="font-weight:600;font-size:13.5px"><input type="checkbox" class="cd" value="${i}"><i style="background:${T[i].t==='prop'?G[T[i].g]:'#8892b8'}"></i>${T[i].n}${GM.mort[i]?' (ipotecata)':''}<small>${EUR(val(i))}</small></label>`).join('')||'<p>Non hai proprietà da cedere. Le vie con case nella serie vanno prima liberate vendendo le case.</p>'}<p id="cdt" style="color:#ffe08a;font-weight:800"></p><div class="ctrl"><button class="big pri" id="cGo">Cedi le proprietà scelte</button><button class="big" id="mX">Annulla</button></div>`);
+  $('cdh').textContent='Cedi proprietà a '+d.to.name;const pick=()=>[...$('modal').querySelectorAll('.cd:checked')].map(e=>+e.value),sum=()=>pick().reduce((a,i)=>a+val(i),0);
+  const upd=()=>{$('cdt').textContent=`Valore scelto: ${EUR(sum())} · debito che resta: ${EUR(Math.max(0,d.amt-sum()))}`;};$('modal').querySelectorAll('.cd').forEach(e=>e.onchange=upd);upd();$('mX').onclick=()=>modal('');
+  $('cGo').onclick=()=>{const ch=pick();if(!ch.length||GM.debt!==d)return;const v=sum();ch.forEach(i=>{GM.owner[i]=d.to;updateOwner(i);});d.amt=Math.max(0,d.amt-v);say(`${p.name} cede a ${d.to.name}: ${ch.map(i=>T[i].n).join(', ')}.`);checkThemes();modal('');if(d.amt<=0)GM.debtRes(true);else ui();};}
+
+/* centro del paese: si sblocca per chi ha tanti soldi */
+const RICH=4000,MON_RENT=25,PLOTS=[[-6.7,1.8],[-6.7,4.6],[6.7,1.8],[6.7,4.6],[0,2.1]],centroG=[];
+const MONS=[['fontana','⛲ Piazza con fontana',300],['ruota','🎡 Ruota panoramica',600],['torre','🗼 Torre panoramica',800],['stadio','🏟️ Stadio',1000],['castello','🏰 Castello',1200],['resort','🏝️ Grand Resort',1500]];
+GM.centro={};
+function buildCentro(k){if(!centroG[k]){const q=new THREE.Group();q.position.set(PLOTS[k][0],0,PLOTS[k][1]);scene.add(q);centroG[k]=q;}
+  const g=centroG[k];while(g.children.length)g.remove(g.children[0]);g.userData.spin=null;const c=GM.centro[k];if(!c)return;
+  const col=(GM.players[c.o]||{}).color||'#d9a520',add=(...m)=>m.forEach(o=>g.add(o)),cyl=(rt,rb,h,mat,x,y,z,seg)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||24),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;return m;};
+  const stone=MT('pave','#bdb5a8'),white=M('#eef1f6',{roughness:.5}),cm=M(col,{roughness:.5});
+  add(tbox(2.7,.08,2.5,MT('pave','#cfc8b8'),0,.04,0),box(.03,1.1,.03,'#dfe3ee',1.26,.6,1.16,{metalness:.8,roughness:.3}));
+  {const f=new THREE.Mesh(new THREE.PlaneGeometry(.34,.2),M(col,{side:THREE.DoubleSide}));f.position.set(1.08,1.02,1.16);g.add(f);}
+  if(c.t==='fontana'){add(cyl(1.02,1.08,.24,stone,0,.2,0,36),cyl(.92,.92,.03,M('#3fa9f5',{metalness:.6,roughness:.08}),0,.32,0,36),cyl(.11,.16,.75,stone,0,.62,0),cyl(.42,.14,.13,stone,0,1.0,0),cyl(.36,.36,.02,M('#3fa9f5',{metalness:.6,roughness:.08}),0,1.07,0));
+    const wm=M('#dff3ff',{transparent:true,opacity:.75,roughness:.1});for(let n=0;n<8;n++){const a=n*Math.PI/4,j=cyl(.012,.02,.55,wm,Math.cos(a)*.55,.55,Math.sin(a)*.55,6);j.rotation.z=Math.cos(a)*.5;j.rotation.x=-Math.sin(a)*.5;j.castShadow=false;g.add(j);}
+    add(ns(cyl(.02,.03,.5,wm,0,1.33,0,6)));[[-1.15,-1.05],[1.15,-1.05],[-1.15,1.05]].forEach(([x,z])=>{add(box(.03,.7,.03,'#22352b',x,.4,z,{metalness:.6}));const b=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),M('#fff6c8',{emissive:'#ffd66b',emissiveIntensity:1}));b.position.set(x,.78,z);const h=halo('#ffd98a',1.2);h.position.set(x,.78,z);add(b,h);});}
+  if(c.t==='ruota'){const w=new THREE.Group();w.position.set(0,1.85,0);const rim=new THREE.Mesh(new THREE.TorusGeometry(1.3,.045,8,48),M('#e9eef7',{metalness:.7,roughness:.3}));rim.castShadow=true;w.add(rim);
+    for(let n=0;n<6;n++){const sp=box(.03,2.6,.03,'#e9eef7',0,0,0,{metalness:.7,roughness:.3});sp.rotation.z=n*Math.PI/6;w.add(sp);}
+    for(let n=0;n<12;n++){const a=n*Math.PI/6,cb=box(.2,.2,.24,PCOL[n%7===1?2:n%7],Math.cos(a)*1.3,Math.sin(a)*1.3,0,{roughness:.4});w.add(cb);}
+    const hub=cyl(.12,.12,.5,cm,0,0,0,16);hub.rotation.x=Math.PI/2;w.add(hub);g.add(w);g.userData.spin=w;
+    [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([a,b])=>{const l=box(.07,2.05,.07,'#c9ced6',a*.4,.95,b*.26,{metalness:.7,roughness:.35});l.rotation.z=-a*.4;g.add(l);});add(tbox(1.3,.25,.8,stone,0,.2,0));}
+  if(c.t==='torre'){add(tbox(1.1,.45,1.1,stone,0,.3,0),cyl(.2,.32,3.5,white,0,2.2,0,20),cyl(.78,.55,.36,M(GLASS.color,GLASS),0,3.85,0,28),cyl(.5,.8,.16,cm,0,4.1,0,28),cyl(.56,.2,.2,cm,0,3.6,0,28),cyl(.02,.035,1.0,M('#c9ced6',{metalness:.8}),0,4.7,0,8));
+    const b=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),M('#ff3b30',{emissive:'#ff3b30',emissiveIntensity:1.5}));b.position.set(0,5.22,0);const h=halo('#ff5a4d',1.2);h.position.set(0,5.22,0);add(b,h);}
+  if(c.t==='stadio'){const o=new THREE.Mesh(new THREE.CylinderGeometry(1.28,1.02,.8,40,1,true),M('#d7dbe6',{side:THREE.DoubleSide,roughness:.6}));o.position.y=.48;o.scale.z=.86;o.castShadow=true;
+    const inn=new THREE.Mesh(new THREE.CylinderGeometry(1.2,.74,.62,40,1,true),M(col,{side:THREE.DoubleSide,roughness:.7}));inn.position.y=.42;inn.scale.z=.86;
+    const f=new THREE.Mesh(new THREE.CircleGeometry(.76,40),MT('grass','#58b24a'));f.rotation.x=-Math.PI/2;f.position.y=.1;f.scale.y=.86;f.receiveShadow=true;add(o,inn,f,ns(box(.02,.012,1.1,'#ffffff',0,.11,0)));
+    [[-1.2,-1.05],[1.2,-1.05],[-1.2,1.05],[1.2,1.05]].forEach(([x,z])=>{add(box(.05,1.7,.05,'#c9ced6',x,.9,z,{metalness:.7}),box(.3,.16,.06,'#fff6c8',x,1.8,z,{emissive:'#fff6c8',emissiveIntensity:.9}));const h=halo('#fff6c8',1.6);h.position.set(x,1.8,z);g.add(h);});}
+  if(c.t==='castello'){const sm=MT('pave','#a8a29a');add(tbox(1.0,1.35,1.0,sm,0,.75,0),tbox(1.95,.8,.14,sm,0,.48,.9),tbox(1.95,.8,.14,sm,0,.48,-.9),tbox(.14,.8,1.8,sm,-.98,.48,0),tbox(.14,.8,1.8,sm,.98,.48,0),box(.34,.5,.03,'#3a2a22',0,.33,.975));
+    for(let n=0;n<8;n++){const a=n*Math.PI/4;add(tbox(.16,.16,.16,sm,Math.cos(a)*.42,1.5,Math.sin(a)*.42));}
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>{add(cyl(.27,.3,1.6,sm,a*.98,.88,b*.9,16));const r=new THREE.Mesh(new THREE.ConeGeometry(.37,.6,16),cm);r.position.set(a*.98,1.98,b*.9);r.castShadow=true;g.add(r);});
+    add(box(.03,.7,.03,'#dfe3ee',0,1.9,0));const f=new THREE.Mesh(new THREE.PlaneGeometry(.36,.22),M(col,{side:THREE.DoubleSide}));f.position.set(.19,2.12,0);g.add(f);}
+  if(c.t==='resort'){const wm=MT('wall','#fff3de');add(tbox(1.6,1.8,.7,wm,0,.98,-.6),tbox(.62,1.15,1.25,wm,-.98,.65,.12),tbox(.62,1.15,1.25,wm,.98,.65,.12),box(1.72,.08,.82,col,0,1.92,-.6,{roughness:.5}),box(.72,.07,1.35,col,-.98,1.26,.12,{roughness:.5}),box(.72,.07,1.35,col,.98,1.26,.12,{roughness:.5}));
+    for(let f=0;f<5;f++)for(let x=0;x<5;x++)windowAt(g,-.6+x*.3,.36+f*.31,-.244,.15,.19);
+    for(let f=0;f<3;f++)[-1.1,-.86,.86,1.1].forEach(x=>windowAt(g,x,.36+f*.31,.751,.13,.19));
+    add(box(1.02,.03,.66,WHITE,0,.09,.55),box(.92,.032,.56,'#3fb6e8',0,.093,.55,{metalness:.6,roughness:.08}));[-.62,.62].forEach(x=>{const p=palm();p.scale.setScalar(.55);p.position.set(x,.08,1.05);g.add(p);});
+    const sg=signMesh(.8);sg.position.set(0,2.12,-.3);g.add(sg);}
+}
+function centroModal(){const me=actor();if(!canAct())return;let plot=PLOTS.findIndex((_,k)=>!GM.centro[k]),type='';
+  if(plot<0){modal(`<h2>🏗️ Centro pieno</h2><p>Tutti i lotti del centro sono occupati.</p><button class="big" id="mX">Chiudi</button>`);$('mX').onclick=()=>modal('');return;}
+  const draw=()=>{modal(`<h2>🏗️ Costruisci in centro</h2><p>Hai almeno ${EUR(RICH)}: puoi lasciare il tuo segno al centro di Belluno. Ogni opera ti rende ${EUR(MON_RENT)} a ogni passaggio dalla Partenza.</p><div class="lab">Dove</div><div class="ctrl">${PLOTS.map((_,k)=>`<button class="cp ${k===plot?'on':''}" data-k="${k}" ${GM.centro[k]?'disabled':''}>Lotto ${k+1}</button>`).join('')}</div><div class="lab">Cosa</div>${MONS.map(([key,n,c])=>`<button class="big cm ${key===type?'on':''}" data-t="${key}" ${me.cash<c?'disabled':''}>${n} · ${EUR(c)}</button>`).join('')}<div class="ctrl"><button class="big pri" id="cGo" ${type?'':'disabled'}>Costruisci</button><button class="big" id="mX">Annulla</button></div>`);
+    $('modal').querySelectorAll('.cp').forEach(e=>e.onclick=()=>{plot=+e.dataset.k;draw();});$('modal').querySelectorAll('.cm').forEach(e=>e.onclick=()=>{type=e.dataset.t;draw();});$('mX').onclick=()=>modal('');
+    $('cGo').onclick=()=>{const m=MONS.find(x=>x[0]===type);if(!m||!canAct()||me.cash<m[2]||GM.centro[plot])return;me.cash-=m[2];GM.centro[plot]={t:type,o:GM.players.indexOf(me)};buildCentro(plot);say(`🏗️ ${me.name} costruisce in centro: ${m[1]}!`);SFX.build();modal('');ui();};};draw();}
+
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
-  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}"><i style="background:${p.color}"></i>${p.name}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}<span>${EUR(p.cash)}</span></div>`).join('');
-  const pl=curP(),t=T[pl.pos];$('where').textContent=t.n+(t.p?' · '+EUR(t.p):'');
-  const gb=$('gbar');gb.innerHTML='';gb.style.display='';
-  const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;gb.appendChild(b);};
-  const S=txt=>{const e=document.createElement('span');e.textContent=txt;gb.appendChild(e);};
-  if(!GM.on){B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;advance(demo,a+b).then(ui);},'act');B('▶ Gioca una partita',startModal,'pri');}
-  else if(NET.on&&!mine()&&GM.phase!=='over'){const au=GM.auction,tr=GM.trade;S((mySeat()<0?'Stai guardando · ':'')+(au?`🔨 Asta ${T[au.i].n}: ${au.bid?EUR(au.bid)+' ('+GM.players[au.leader].name+')':'nessuna offerta'} · tocca a ${actor().name}`:tr?`🤝 ${GM.players[tr.from].name} propone uno scambio a ${GM.players[tr.to].name}…`:`Tocca a ${actor().name}…`));if(NET.uid===NET.hostUid&&mySeat()>=0)B(Date.now()-NET.arm<5000?'Conferma: salta il turno':'⏭ Salta il suo turno',netSkip);}
-  else if(GM.phase==='auction'&&GM.auction){const a=GM.auction,p=actor();S(`🔨 ${T[a.i].n} · ${a.bid?'offerta '+EUR(a.bid)+' ('+GM.players[a.leader].name+')':'nessuna offerta'} · tocca a ${p.name}`);
-    [10,50,100].forEach(d=>B(`Offri ${EUR(a.bid+d)}`,()=>auctionBid(a.bid+d),'pri',p.cash<a.bid+d));B('Passo',auctionPass);}
-  else if(GM.phase==='trade'&&GM.trade){const t=GM.trade,a=GM.players[t.from],b=GM.players[t.to];S(`🤝 ${b.name}: ${a.name} ti dà ${tradeSide(t.give)} · in cambio di ${tradeSide(t.get)}`);B('Accetta',()=>tradeResolve(true),'pri');B('Rifiuta',()=>tradeResolve(false),'act');}
+  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
+  const pl=curP(),t=T[pl.pos];
+  const gb=$('gbar');gb.innerHTML='';gb.style.display='';const row=document.createElement('div');row.className='btns';
+  const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;row.appendChild(b);return b;};
+  const S=txt=>{const e=document.createElement('div');e.className='st';e.textContent=txt;gb.appendChild(e);return e;};
+  const extra=()=>{const me=NET.on?GM.players[mySeat()]:pl;if(me&&!me.out)B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(me)));};
+  const myTurnExtra=()=>{if(alive().length>1)B('🤝 Scambio',()=>tradeModal());extra();if(pl.cash>=RICH&&PLOTS.some((_,k)=>!GM.centro[k]))B('🏗️ Costruisci in centro',centroModal,'act');};
+  if(!GM.on){S('Stai esplorando il mondo');B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;rollDiceAnim(a,b).then(()=>advance(demo,a+b)).then(ui);},'act');B('▶ Gioca una partita',startModal,'pri');}
+  else if(GM.phase==='auction'&&GM.auction){const a=GM.auction,e=S('');e.innerHTML=`🔨 Asta: <b>${T[a.i].n}</b> · ${a.bid?'offerta più alta '+EUR(a.bid)+' di '+esc(GM.players[a.leader].name):'nessuna offerta'} · ⏱ <b id="aucT">${Math.ceil(Math.max(0,(GM.aucEnd||0)-Date.now())/1000)}</b> s`;
+    const who=NET.on?(mySeat()>=0?[mySeat()]:[]):GM.players.map((p,k)=>k);
+    const old=document.getElementById('aucIn'),had=old&&document.activeElement===old,min=a.bid+10;if(!(GM.aucIn>=min))GM.aucIn=min;
+    if(who.some(k=>!GM.players[k].out)){const inp=document.createElement('input');inp.id='aucIn';inp.type='number';inp.step=10000;inp.min=min*1000;inp.value=GM.aucIn*1000;inp.title='Quanto vuoi offrire, in euro';
+      inp.style.cssText='font:inherit;font-weight:800;width:150px;color:#fff;background:#1d2656;border:1px solid #ffffff60;border-radius:11px;padding:9px 10px';inp.oninput=()=>{GM.aucIn=Math.round((+inp.value||0)/1000);};
+      const lab=document.createElement('span');lab.textContent='La tua offerta (€):';lab.style.cssText='align-self:center;font-weight:700';row.appendChild(lab);row.appendChild(inp);
+      inp.onkeydown=ev=>{ev.stopPropagation();if(ev.key==='Enter'&&who.length===1)placeBid(who[0],GM.aucIn);};if(had)setTimeout(()=>inp.focus(),0);}
+    who.forEach(k=>{const p=GM.players[k];if(p.out)return;B(NET.on?'Offri':'Offre '+p.name,()=>{const v=GM.aucIn;if(v>a.bid&&p.cash>=v)placeBid(k,v);else{const w=$('aucIn');if(w){w.style.borderColor='#ff4d5e';}}},'pri',p.cash<min||a.leader===k);});
+    if(NET.on&&mySeat()>=0&&!GM.players[mySeat()].out)[10,50].forEach(d=>B('+'+EUR(d),()=>placeBid(mySeat(),a.bid+d),'',GM.players[mySeat()].cash<a.bid+d||a.leader===mySeat()));
+    if(NET.on&&mySeat()<0)S('Stai guardando');else if(NET.on&&a.leader===mySeat())S('La tua offerta è la più alta');}
+  else if(NET.on&&!mine()&&GM.phase!=='over'){const tr=GM.trade;S((mySeat()<0?'Stai guardando · ':'')+(tr?`🤝 ${GM.players[tr.from].name} propone uno scambio a ${GM.players[tr.to].name}…`:`Tocca a ${actor().name}…`));extra();
+    if(NET.uid===NET.hostUid&&mySeat()>=0&&Date.now()-(NET.lastAct||0)>45000)B(Date.now()-NET.arm<5000?'Conferma: passa al prossimo':`${actor().name} non risponde? Passa al prossimo`,netSkip);}
+  else if(GM.phase==='trade'&&GM.trade){const tr=GM.trade,a=GM.players[tr.from],b=GM.players[tr.to];S(`🤝 ${b.name}: ${a.name} ti dà ${tradeSide(tr.give)} · in cambio di ${tradeSide(tr.get)}`);B('Accetta',()=>tradeResolve(true),'pri');B('Rifiuta',()=>tradeResolve(false),'act');}
   else if(GM.phase==='buy'){const i=pl.pos,done=yes=>{const r=GM.buyRes;GM.buyRes=null;GM.phase='';if(r)r(yes);else{GM.busy=false;GM.after=GM.again?'roll':'end';GM.phase=GM.after;const can=T[i].p&&T[i].t!=='tax'&&!GM.owner[i];if(yes&&pl.cash>=T[i].p&&can)buy(pl,i);else{say(`${pl.name} non compra ${T[i].n}.`);if(can)startAuction(i);}ui();}};
-    S(`${pl.name}: ${T[i].n}?`);B(`Compra per ${EUR(T[i].p)}`,()=>done(true),'pri',pl.cash<T[i].p);B('Non comprare',()=>done(false));}
-  else if(GM.phase==='debt'){const d=GM.debt;S(`${d.pl.name} deve pagare ${EUR(d.amt)}`);B('Paga',()=>GM.debtRes(true),'pri',d.pl.cash<d.amt);B('Vendi e ipoteca in automatico',()=>{autoRaise(d.pl,d.amt);ui();});B('Bancarotta',()=>GM.debtRes(false),'act');}
-  else if(GM.busy){gb.style.display='none';}
-  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}`);B('🎲 Tira i dadi',doRoll,'act');if(alive().length>1)B('🤝 Scambio',()=>tradeModal());}
-  else if(GM.phase==='jail'){S(`${pl.name} è in prigione`);B(`🎲 Tira per il doppio (${pl.jail}/3)`,doRoll,'act');B(`Paga ${EUR(BAIL)}`,jailPay,'',pl.cash<BAIL);if(pl.jf.length)B('🎟️ Usa la carta',jailCard);}
-  else if(GM.phase==='end'){S(`${pl.name}: puoi costruire, poi`);B('Fine turno ➜',endTurn,'pri');if(alive().length>1)B('🤝 Scambio',()=>tradeModal());}
-  else if(GM.phase==='over'){if(!NET.on)B('▶ Nuova partita',setupModal,'pri');else S('Partita finita');}
+    S(`${pl.name}, vuoi comprare ${T[i].n}? Se non la compri va all'asta.`);B(`Compra per ${EUR(T[i].p)}`,()=>done(true),'pri',pl.cash<T[i].p);B('Non comprare',()=>done(false));}
+  else if(GM.phase==='debt'){const d=GM.debt;S(`${d.pl.name} deve pagare ${EUR(d.amt)}: vendi case o ipoteca, poi paga`);B('Paga',()=>GM.debtRes(true),'pri',d.pl.cash<d.amt);if(d.to)B('🏠 Cedi proprietà a '+d.to.name,cedeModal);B('Vendi e ipoteca in automatico',()=>{autoRaise(d.pl,d.amt);ui();});B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(d.pl)));B('Bancarotta',()=>GM.debtRes(false),'act');}
+  else if(GM.busy){S(`${pl.name} sta muovendo…`);}
+  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}: tira i dadi`);B('🎲 Tira i dadi',doRoll,'act');myTurnExtra();}
+  else if(GM.phase==='jail'){S(`${pl.name} è in prigione (tentativo ${pl.jail} di 3)`);B('🎲 Tira per il doppio',doRoll,'act');B(`Paga ${EUR(BAIL)}`,jailPay,'',pl.cash<BAIL);if(pl.jf.length)B('🎟️ Usa la carta',jailCard);extra();}
+  else if(GM.phase==='end'){S(`${pl.name}: puoi costruire o scambiare, poi chiudi il turno`);B('Fine turno ➜',endTurn,'pri');myTurnExtra();}
+  else if(GM.phase==='over'){S('Partita finita');if(!NET.on)B('▶ Nuova partita',setupModal,'pri');}
+  if(row.children.length)gb.appendChild(row);if(!gb.children.length)gb.style.display='none';
   select(sel);
+  if(GM.propsOpen!=null&&$('pm'))propsModal(GM.propsOpen);
   if(NET.on&&GM.on){const m=mine()&&GM.phase!=='over';if(m&&!NET.wasMine)SFX.turn();NET.wasMine=m;document.title=m?'🎲 Tocca a te! – Re di Belluno':'Re di Belluno';
     const a=mine();if(a||NET.wasAct||NET.force){NET.force=false;netPush();}NET.wasAct=a;}}
 
@@ -856,8 +968,10 @@ function netInit(){if(NET.sb)return true;if(!CAN_NET||!window.supabase)return fa
 function netFail(e){modal(`<h2>Online non disponibile</h2><p>Non riesco a collegarmi al server delle partite. Controlla la connessione e riprova. ${e&&e.message?'('+String(e.message).replace(/[<>]/g,'')+')':''}</p><button class="big pri" id="mX">Torna al menu</button>`);$('mX').onclick=startModal;}
 const bcast=(event,payload)=>{try{if(NET.ch)NET.ch.send({type:'broadcast',event,payload});}catch(e){}};
 function netSub(){NET.ch=NET.sb.channel('rdb-'+NET.code,{config:{broadcast:{self:false}}});
-  NET.ch.on('broadcast',{event:'state'},m=>netApply(m.payload)).on('broadcast',{event:'lobby'},()=>netRefresh()).on('broadcast',{event:'chat'},m=>chatAdd(m.payload)).subscribe();
-  clearInterval(NET.poll);NET.poll=setInterval(()=>{if(!NET.started||GM.phase==='over'||!mine())netRefresh();},7000);$('chat').classList.add('show');}
+  NET.ch.on('broadcast',{event:'state'},m=>netApply(m.payload)).on('broadcast',{event:'lobby'},()=>netRefresh()).on('broadcast',{event:'chat'},m=>chatAdd(m.payload)).on('broadcast',{event:'deco'},m=>{const d=m.payload;if(!d||!st[d.i]||!d.s)return;const x=st[d.i];['wall','roof','acc','style','hstyle'].forEach(k=>{if(typeof d.s[k]==='string'||d.s[k]===null)x[k]=d.s[k];});if(d.s.orn)ORN.forEach(([k])=>{x.orn[k]=!!d.s.orn[k];});rebuild(+d.i);if(sel===+d.i)select(sel);if(mine())netPush();})
+    .on('broadcast',{event:'theme'},m=>{const d=m.payload;if(!d||!grp[d.g])return;grp[d.g].theme=String(d.theme||'');grp[d.g].light=/^#[0-9a-f]{6}$/i.test(d.light)?d.light:grp[d.g].light;applyTheme(+d.g);if(mine())netPush();})
+    .on('broadcast',{event:'bid'},m=>{if(m.payload&&NET.started&&mine())auctionBid(+m.payload.seat,+m.payload.v);}).subscribe();
+  clearInterval(NET.poll);NET.poll=setInterval(()=>{if(!NET.started||GM.phase==='over'||!mine()){netRefresh();if(NET.started&&!NET.applying&&GM.on&&!mine()&&GM.phase!=='auction')ui();}},7000);$('chat').classList.add('show');}
 async function netRefresh(){try{const s=await rpc('room_get',{p_code:NET.code});if(!s)return;if(s.started)netApply(s);else{NET.lobby=s.lobby||{};NET.hostUid=s.host;if(NET.inLobby)lobbyModal();}}catch(e){}}
 async function netCreate(){if(!netInit())return netFail();const A='abcdefghjkmnpqrstuvwxyz23456789',code=Array.from({length:12},()=>A[Math.floor(Math.random()*A.length)]).join('');
   modal('<h2>Creo la stanza…</h2>');try{await rpc('room_create',{p_code:code,p_state:{host:NET.uid,lobby:{},started:false,v:0}});}catch(e){return netFail(e);}
@@ -887,9 +1001,9 @@ function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(
   return {started:true,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
     players:GM.players.map(p=>({uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
-    auction:GM.auction||null,trade:GM.trade||null,after:GM.after||'end',
+    auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
-function netPush(){if(!NET.on||!NET.started||NET.applying||GM.fast)return;clearTimeout(NET.timer);NET.timer=setTimeout(()=>{const s=JSON.parse(JSON.stringify(netSnap()));bcast('state',s);
+function netPush(){if(!NET.on||!NET.started||NET.applying||GM.fast)return;clearTimeout(NET.timer);NET.lastAct=Date.now();NET.timer=setTimeout(()=>{const s=JSON.parse(JSON.stringify(netSnap()));bcast('state',s);
   NET.saving=NET.saving.then(()=>rpc('room_save',{p_code:NET.code,p_state:s})).catch(()=>{});},120);}
 function vhop(p,to,dur){return new Promise(res=>{if(p===curP()){const d=PATH[to].clone().sub(PATH[p.vpos]);if(d.lengthSq()>.01)dir.copy(d.normalize());}
   const a=p.mesh.position.clone();a.y=0;segs.push({pl:p,a,b:slot(p,to),t0:performance.now(),to,res,dur,vis:true});SFX.step();});}
@@ -902,14 +1016,15 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
       GM.on=true;demo.mesh.visible=false;GM.owner={};GM.mort={};GM.log=[];GM.players.forEach(p=>p.mesh.position.copy(slot(p,p.pos)));if($('modal').classList.contains('show'))modal('');}
     s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
     GM.cur=s.cur;GM.phase=s.phase;GM.busy=!!s.busy;GM.dbl=s.dbl||0;GM.again=!!s.again;GM.decks=s.decks||GM.decks;
-    if(s.dice&&(s.roll||0)!==(GM.roll||0)){const d=$('dice');d.style.display='';d.textContent=`🎲 ${s.dice[0]} + ${s.dice[1]} = ${s.dice[0]+s.dice[1]}`;if(!first)SFX.dice();}GM.dice=s.dice||[0,0];GM.roll=s.roll||0;
+    if(s.dice&&(s.roll||0)!==(GM.roll||0)){const d=$('dice');d.style.display='';d.textContent=`🎲 ${s.dice[0]} + ${s.dice[1]} = ${s.dice[0]+s.dice[1]}`;if(!first)rollDiceAnim(s.dice[0],s.dice[1]);}GM.dice=s.dice||[0,0];GM.roll=s.roll||0;
     const no={},nm={};for(const i in (s.owner||{}))no[i]=GM.players[s.owner[i]];(s.mort||[]).forEach(i=>nm[i]=true);
     for(const i in ownG){if(GM.owner[i]!==no[i]||!!GM.mort[i]!==!!nm[i]){if(no[i])GM.owner[i]=no[i];else delete GM.owner[i];if(nm[i])GM.mort[i]=true;else delete GM.mort[i];updateOwner(+i);}}
     for(const i in (s.st||{})){if(!st[i])continue;const a=JSON.stringify(s.st[i]);if(a!==JSON.stringify(st[i])){const up=s.st[i].lv>st[i].lv;Object.assign(st[i],JSON.parse(a));rebuild(+i,up&&!first);}}
     (s.grp||[]).forEach((g,k)=>{if(grp[k]&&(g.theme!==grp[k].theme||g.light!==grp[k].light)){grp[k].theme=g.theme;grp[k].light=g.light;applyTheme(k);}});
-    const n=Math.min((s.log||[]).length,Math.max(0,(s.logN||0)-NET.logN));if(n){s.log.slice(-n).forEach(m=>{GM.log.push(String(m));if(!first)sfxFor(String(m));});$('log').innerHTML=GM.log.slice(-3).map(x=>`<div>${x.replace(/</g,'&lt;')}</div>`).join('');}NET.logN=s.logN||0;
+    const n=Math.min((s.log||[]).length,Math.max(0,(s.logN||0)-NET.logN));if(n){s.log.slice(-n).forEach(m=>{GM.log.push(String(m));if(!first)sfxFor(String(m));});$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}NET.logN=s.logN||0;
     GM.debt=s.debt&&GM.players[s.debt.pl]?{pl:GM.players[s.debt.pl],amt:s.debt.amt,to:s.debt.to>=0?GM.players[s.debt.to]:null}:null;
-    GM.auction=s.auction||null;GM.trade=s.trade||null;GM.after=s.after||'end';
+    GM.auction=s.auction||null;if(GM.auction)GM.aucEnd=Date.now()+(GM.auction.left||0);GM.trade=s.trade||null;GM.after=s.after||'end';NET.lastAct=Date.now();
+    {const nc=s.centro||{};for(let k=0;k<PLOTS.length;k++)if(JSON.stringify(nc[k]||null)!==JSON.stringify(GM.centro[k]||null)){if(nc[k])GM.centro[k]=nc[k];else delete GM.centro[k];buildCentro(k);}}
     pawn=GM.players[GM.cur].mesh;
     if(first)GM.players.forEach(p=>{p.vpos=p.pos;p.mesh.position.copy(slot(p,p.pos));});
     else GM.players.forEach(p=>{if(!p.out&&p.vpos!==p.pos)NET.q=NET.q.then(()=>netWalk(p)).catch(()=>{});});
@@ -921,13 +1036,13 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
   else if(mySeat()<0&&!NET.spect&&GM.phase!=='over'&&!$('modal').classList.contains('show'))claimModal();}
 function netSkip(){const now=Date.now();if(now-NET.arm>5000){NET.arm=now;ui();return;}NET.arm=0;const pl=curP();say(`⏭ Il turno di ${pl.name} è stato saltato.`);GM.busy=false;GM.debt=null;GM.buyRes=null;GM.auction=null;GM.trade=null;GM.phase='end';NET.force=true;endTurn();}
 function chatAdd(m){if(!m||typeof m.t!=='string')return;const el=$('chatLog'),d=document.createElement('div'),b=document.createElement('b');b.textContent=String(m.n||'?').slice(0,14)+': ';b.style.color=/^#[0-9a-f]{6}$/i.test(m.c)?m.c:'#fff';d.appendChild(b);d.appendChild(document.createTextNode(m.t.slice(0,120)));el.appendChild(d);
-  while(el.children.length>30)el.removeChild(el.firstChild);el.scrollTop=el.scrollHeight;SFX.chat();}
+  while(el.children.length>30)el.removeChild(el.firstChild);el.scrollTop=el.scrollHeight;SFX.chat();if(!$('chat').classList.contains('open'))$('chatTog').textContent='💬 Chat 🔴';}
 function chatSend(t){t=String(t).trim().slice(0,120);if(!t||!NET.on)return;const p=GM.players[mySeat()]||NET.lobby[NET.uid]||{name:'Ospite',color:'#ffffff'},m={n:p.name,c:p.color==='#20232a'?'#b9c0d0':p.color,t};chatAdd(m);bcast('chat',m);}
 function startModal(){modal(`<h2>Re di Belluno</h2><p>Come vuoi giocare?</p>${CAN_NET?'<button class="big pri" id="sOn">🌐 Gioca online con gli amici</button>':'<p>Il gioco online funziona solo dal sito del gioco, non da questa anteprima.</p>'}<button class="big" id="sLo">🎮 Gioca su questo schermo</button><button class="big" id="mX">👀 Esplora il mondo</button>`);
   if(CAN_NET)$('sOn').onclick=netCreate;$('sLo').onclick=setupModal;$('mX').onclick=()=>modal('');}
 
 /* ================= CAMERA ================= */
-let mode='orbit',az=0,pol=.74,rad=32,yawOff=0;
+let mode='orbit',az=0,pol=.74,rad=40,yawOff=0;
 const camPos=new THREE.Vector3(0,26,28),look=new THREE.Vector3();
 function updateCam(){
   let want,lk;
@@ -940,11 +1055,11 @@ function updateCam(){
   camera.position.copy(camPos);camera.lookAt(look);
 }
 let down=null,moved=0;
-wrap.addEventListener('pointerdown',e=>{if(e.target.closest('button,#modal,.bar,#chat'))return;down=[e.clientX,e.clientY];moved=0;wrap.classList.add('drag');wrap.setPointerCapture(e.pointerId);});
+wrap.addEventListener('pointerdown',e=>{if(e.target.closest('button,#modal,#dock,#tools,#chat,.pl'))return;down=[e.clientX,e.clientY];moved=0;wrap.classList.add('drag');wrap.setPointerCapture(e.pointerId);});
 wrap.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-down[0],dy=e.clientY-down[1];moved+=Math.abs(dx)+Math.abs(dy);down=[e.clientX,e.clientY];
   if(mode==='orbit'){az-=dx*.006;pol=Math.max(.12,Math.min(1.45,pol-dy*.005));}else yawOff-=dx*.006;});
 wrap.addEventListener('pointerup',e=>{wrap.classList.remove('drag');if(down&&moved<6)pick(e);down=null;});
-wrap.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(9,Math.min(60,rad*(1+Math.sign(e.deltaY)*.09)));},{passive:false});
+wrap.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(9,Math.min(80,rad*(1+Math.sign(e.deltaY)*.09)));},{passive:false});
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();
 function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   ray.setFromCamera(mv,camera);const h=ray.intersectObjects(tileMeshes)[0];if(h)select(h.object.userData.i);}
@@ -953,7 +1068,7 @@ function setMode(m){mode=m;document.getElementById('bOrbit').classList.toggle('o
 document.getElementById('bOrbit').onclick=()=>setMode('orbit');
 document.getElementById('bWalk').onclick=()=>setMode('walk');
 document.getElementById('bNew').onclick=()=>{if(!NET.on)return startModal();modal(`<h2>Stanza online</h2><p>Sei in una stanza online. Per iniziare un'altra partita esci e creane una nuova.</p><div class="link"><input readonly value="${inviteUrl()}"></div><div class="ctrl"><button class="big act" id="mOut">Esci dalla stanza</button><button class="big" id="mX">Resta</button></div>`);$('mOut').onclick=()=>{location.href=location.pathname;};$('mX').onclick=()=>modal('');};
-let HQ=true;document.getElementById('bQ').onclick=e=>{HQ=!HQ;e.target.textContent='Qualità: '+(HQ?'alta':'bassa');renderer.setPixelRatio(HQ?Math.min(devicePixelRatio,2.5):1);
+let HQ=true;document.getElementById('bQ').onclick=e=>{HQ=!HQ;e.target.textContent=HQ?'HD':'SD';renderer.setPixelRatio(HQ?Math.min(devicePixelRatio,2.5):1);
   const n=HQ?4096:1024;sun.shadow.mapSize.set(n,n);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}resize();};
 addEventListener('keydown',e=>{if(e.key==='ArrowUp'&&!GM.on&&!segs.length&&!e.target.closest('input')){e.preventDefault();advance(demo,1).then(ui);}});
 
@@ -964,7 +1079,12 @@ function frame(w,d){const g=new THREE.Group(),m={color:'#ffffff',emissive:'#ffff
   g.add(box(w,.06,.09,'#fff',0,.05,-d/2+.045,m),box(w,.06,.09,'#fff',0,.05,d/2-.045,m),box(.09,.06,d,'#fff',-w/2+.045,.05,0,m),box(.09,.06,d,'#fff',w/2-.045,.05,0,m));
   g.children.forEach(c=>c.castShadow=false);return g;}
 const canAct=()=>GM.on&&GM.phase!=='over'&&GM.phase!=='auction'&&GM.phase!=='trade'&&mine()&&(!GM.busy||GM.phase==='buy'||GM.phase==='debt');
-const canDeco=i=>!GM.on||(canAct()&&GM.owner[i]===actor());
+const myPl=()=>NET.on?GM.players[mySeat()]:null;
+const canDeco=i=>!GM.on||(NET.on?(!!GM.owner[i]&&GM.owner[i]===myPl()):!!GM.owner[i]);
+const themeOk=g=>!GM.on||(NET.on?(!!myPl()&&hasSet(myPl(),g)):GM.players.some(p=>!p.out&&hasSet(p,g)));
+const cosm=x=>({wall:x.wall,roof:x.roof,acc:x.acc,style:x.style,hstyle:x.hstyle,orn:Object.assign({},x.orn)});
+function decoSync(i){if(!NET.on||!NET.started)return;if(mine())netPush();else bcast('deco',{i,s:cosm(st[i])});}
+function themeSync(g){if(!NET.on||!NET.started)return;if(mine())netPush();else bcast('theme',{g,theme:grp[g].theme,light:grp[g].light});}
 function select(i){
   if(sel!==i||!marker){if(marker&&marker.parent)marker.parent.remove(marker);marker=frame(i%10===0?TD:TW,TD);tileG[i].add(marker);}
   sel=i;const t=T[i],isP=t.t==='prop',buyable=t.p&&t.t!=='tax',o=GM.owner[i];let h='';
@@ -979,7 +1099,7 @@ function select(i){
     deed.style.setProperty('--g','#39446e');deed.style.setProperty('--gt','#fff');
     const txt={sta:['Stazione',[['Con 1 stazione',EUR(25)],['Con 2 stazioni',EUR(50)],['Con 3 stazioni',EUR(100)],['Con 4 stazioni',EUR(200)],['Prezzo',EUR(200)]]],
       util:['Società',[['Con 1 società','4.000 € × i dadi'],['Con 2 società','10.000 € × i dadi'],['Prezzo',EUR(150)]]],
-      tax:['Tassa',[['Paghi alla banca',EUR(t.p||0)]]],ch:['Carta',[['Peschi una carta','16 nel mazzo']]],cc:['Carta',[['Peschi una carta','16 nel mazzo']]],
+      tax:['Tassa',[['Paghi alla banca',EUR(t.p||0)]]],ch:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],cc:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],
       corner:['Angolo',[[t.sub||'','']]]}[t.t];
     h=`<div class="deedTop"><small>${txt[0]}</small><div>${t.ic} ${t.n}</div></div><div class="rows">`+txt[1].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')+own+`</div>`;
   }
@@ -991,14 +1111,14 @@ function select(i){
     P.disabled=!mine||!!nb;Mi.disabled=!mine||!!nsl;
     P.textContent=isP?(st[i].lv===4?'+ Albergo ':'+ Casa ')+EUR(HC[t.g]):'+ Casa';Mi.textContent=isP?'− Vendi '+EUR(HC[t.g]/2):'− Vendi';
     if(buyable){const m=GM.mort[i];Mo.textContent=m?'Riscatta '+EUR(Math.ceil(t.p/2*1.1)):'Ipoteca +'+EUR(t.p/2);Mo.disabled=!mine||(m?a.cash<Math.ceil(t.p/2*1.1):!!whyNoMort(a,i));}
-    if(mine&&isP&&nb&&st[i].lv<5)why.textContent=nb;else if(o&&o!==a)why.textContent='Solo '+o.name+' può costruire e decorare qui.';}
+    if(mine&&isP&&nb&&st[i].lv<5)why.textContent=nb;else if(o&&o!==a&&!canDeco(i))why.textContent='Solo '+o.name+' può costruire e decorare qui.';else if(o&&!mine&&canDeco(i))why.textContent='Puoi decorare sempre. Case e alberghi solo nel tuo turno.';}
   $('custom').classList.toggle('off',!isP||!canDeco(i));
   if(isP){const s=st[i];
     document.querySelectorAll('#swWall i').forEach(e=>e.classList.toggle('on',e.dataset.c===s.wall));
     document.querySelectorAll('#swRoof i').forEach(e=>e.classList.toggle('on',e.dataset.c===s.roof));
     document.querySelectorAll('#swAcc i').forEach(e=>e.classList.toggle('on',e.dataset.c===(s.acc||s.roof)));
     document.querySelectorAll('#orn button').forEach(e=>e.classList.toggle('on',s.orn[e.dataset.k]));
-    const th=!GM.on||hasSet(actor(),t.g);
+    const th=themeOk(t.g);
     document.querySelectorAll('#thm button').forEach(e=>{e.classList.toggle('on',e.dataset.k===grp[t.g].theme);e.disabled=!th;});document.querySelectorAll('#swL i').forEach(e=>e.classList.toggle('on',e.dataset.c===grp[t.g].light));
     document.querySelectorAll('#styH button').forEach(e=>e.classList.toggle('on',e.dataset.k===s.style));document.querySelectorAll('#styA button').forEach(e=>e.classList.toggle('on',e.dataset.k===s.hstyle));}
 }
@@ -1007,19 +1127,21 @@ function bump(k){if(T[sel].t!=='prop')return;const s=st[sel];
   const a=actor();if(!canAct())return;if(k>0){if(whyNoBuild(a,sel))return;buildHouse(a,sel);}else{if(whyNoSell(a,sel))return;sellHouse(a,sel);}ui();}
 $('plus').onclick=()=>bump(1);$('minus').onclick=()=>bump(-1);
 $('mort').onclick=()=>{const a=actor(),i=sel;if(!canAct()||GM.owner[i]!==a)return;if(GM.mort[i])unmortgage(a,i);else if(!whyNoMort(a,i))mortgage(a,i);ui();};
-const deco=fn=>()=>{if(T[sel].t!=='prop'||!canDeco(sel))return;fn();select(sel);netPush();};
+const deco=fn=>()=>{if(T[sel].t!=='prop'||!canDeco(sel))return;fn();select(sel);decoSync(sel);};
 function swatches(id,list,key){const el=$(id);list.forEach(c=>{const i=document.createElement('i');i.style.background=c;i.dataset.c=c;i.onclick=deco(()=>{st[sel][key]=c;rebuild(sel);});el.appendChild(i);});}
 swatches('swWall',WALLS,'wall');swatches('swRoof',ROOFS,'roof');swatches('swAcc',ACCS,'acc');
 ORN.forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.k=k;b.onclick=deco(()=>{st[sel].orn[k]=!st[sel].orn[k];rebuild(sel);});$('orn').appendChild(b);});
 [['styH','style',[['classica','Classica'],['chalet','Chalet'],['moderna','Moderna']]],['styA','hstyle',[['grand','Grand Hotel'],['vetro','Torre vetro'],['chalet','Chalet']]]].forEach(([id,key,list])=>list.forEach(([k,n])=>{
   const b=document.createElement('button');b.textContent=n;b.dataset.k=k;b.style.textAlign='center';b.onclick=deco(()=>{st[sel][key]=k;rebuild(sel,true);});$(id).appendChild(b);}));
-const canTheme=()=>T[sel].t==='prop'&&(!GM.on||(canAct()&&hasSet(actor(),T[sel].g)));
-THEMES.forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.k=k;b.onclick=()=>{if(!canTheme())return;const gi=T[sel].g;grp[gi].theme=k;applyTheme(gi);select(sel);netPush();};$('thm').appendChild(b);});
-LIGHTS.forEach(c=>{const i=document.createElement('i');i.style.background=c;i.dataset.c=c;i.onclick=()=>{if(!canTheme())return;const gi=T[sel].g;grp[gi].light=c;applyTheme(gi);select(sel);netPush();};$('swL').appendChild(i);});
+const canTheme=()=>T[sel].t==='prop'&&themeOk(T[sel].g);
+THEMES.forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.k=k;b.onclick=()=>{if(!canTheme())return;const gi=T[sel].g;grp[gi].theme=k;applyTheme(gi);select(sel);themeSync(gi);};$('thm').appendChild(b);});
+LIGHTS.forEach(c=>{const i=document.createElement('i');i.style.background=c;i.dataset.c=c;i.onclick=()=>{if(!canTheme())return;const gi=T[sel].g;grp[gi].light=c;applyTheme(gi);select(sel);themeSync(gi);};$('swL').appendChild(i);});
 $('bN').onclick=()=>setNight(!night);
 $('bS').onclick=e=>{SND.on=!SND.on;e.target.textContent=SND.on?'🔊':'🔇';};
 $('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'){chatSend(e.target.value);e.target.value='';}e.stopPropagation();});
-document.querySelectorAll('#chat button').forEach(b=>b.onclick=()=>chatSend(b.dataset.e));
+document.querySelectorAll('#chat .chatRow button').forEach(b=>b.onclick=()=>chatSend(b.dataset.e));
+$('chatTog').onclick=()=>{const c=$('chat');c.classList.toggle('open');$('chatTog').textContent='💬 Chat';if(c.classList.contains('open'))$('chatIn').focus();};
+$('players').addEventListener('click',e=>{const el=e.target.closest('.pl');if(el&&GM.on)propsModal(+el.dataset.k);});
 /* ================= AVVIO ================= */
 function resize(){const w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);
@@ -1027,13 +1149,16 @@ function loop(){
   requestAnimationFrame(loop);const now=performance.now();
   for(let n=segs.length-1;n>=0;n--){const sg=segs[n],k=Math.min(1,(now-sg.t0)/sg.dur),m=sg.pl.mesh;m.position.lerpVectors(sg.a,sg.b,k);m.position.y=Math.sin(k*Math.PI)*.55;
     if(k>=1){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;m.position.copy(sg.b);segs.splice(n,1);sg.res();}}
-  for(const i in bldG){const g=bldG[i],t0=g.userData.t0;if(t0){const k=Math.min(1,(now-t0)/450),e=1+2.2*Math.pow(k-1,3)+1.2*Math.pow(k-1,2);g.scale.setScalar(Math.max(.05,e));if(k>=1){g.scale.setScalar(1);g.userData.t0=0;}}}
+  for(const i in bldG){const g=bldG[i],t0=g.userData.t0;if(t0){const k=Math.min(1,(now-t0)/450),e=1+2.2*Math.pow(k-1,3)+1.2*Math.pow(k-1,2);g.scale.setScalar(Math.max(.05,e)*BS);if(k>=1){g.scale.setScalar(BS);g.userData.t0=0;}}}
   if(marker)marker.position.y=.02+Math.sin(now/300)*.02;
+  centroG.forEach(q=>{if(q&&q.userData.spin)q.userData.spin.rotation.z+=.004;});
   updateCam();renderer.render(scene,camera);
 }
+/* se la scheda è nascosta il browser ferma le animazioni: così le mosse finiscono lo stesso */
+setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}},200);
 function start(){buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={auctionBid,auctionPass,tradeResolve,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
+window.__dbg={cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP};
 </script>
 </body>
 </html>
