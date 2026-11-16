@@ -967,7 +967,7 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(pl===curP()){const d=PATH[to].clone().sub(PATH[pl.pos]);d.y=0;if(d.lengthSq()>.01)dir.copy(d.normalize());yawOff=0;}
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=PATH[pl.pos]?PATH[pl.pos].y:0;segs.push({pl,a,b,t0:performance.now(),to,res,dur:dur||250});SFX.step();});}
-async function advance(pl,n,noChoice){for(let k=0;k<n;k++){if(pl.out)break;let inner=false;if(pl.pos===5&&!noChoice)inner=await routeAsk(pl);else if(pl.pos===10&&!noChoice&&(await sagAsk(pl)))inner='s';if(pl.out)break;await hop(pl,nxt(pl.pos,inner),n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);payday(pl,SAL,mo,sellItems(pl));pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}}face(pl);}
+async function advance(pl,n,noChoice){for(let k=0;k<n;k++){if(pl.out)break;let inner=false;if(pl.pos===5&&!noChoice)inner=await routeAsk(pl);else if(pl.pos===10&&!noChoice&&(await sagAsk(pl)))inner='s';if(pl.out)break;await hop(pl,nxt(pl.pos,inner),n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);payday(pl,SAL,mo,sellItems(pl));if(hasMon(pl,'ruota'))freeSpin(pl);pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}}face(pl);}
 const goTo=(pl,i)=>advance(pl,dist(pl.pos,i),true);
 async function back(pl,n){for(let k=0;k<n;k++)await hop(pl,prv(pl.pos));face(pl);}
 async function routeAsk(pl){const o=GM.on?GM.owner[40]:null,fee=!GM.on?0:o===pl?TOLL/2:TOLL,tw=o&&o!==pl&&!GM.mort[40]?o:null;if(GM.on&&pl.noIn){pl.noIn=false;say(`🚧 ${pl.name} ha preso la strada interna al giro scorso: questa volta resta sul giro esterno.`);return false;}if(GM.on&&pl.cash<fee)return false;
@@ -998,7 +998,7 @@ async function pay(pl,amt,to){if(pl.out)return false;
   pl.cash-=amt;if(to)to.cash+=amt;ui();return true;}
 function bankrupt(pl,to){pl.out=true;say(`💥 ${pl.name} è in bancarotta${to?': tutto passa a '+to.name:''}.`);
   owned(pl).forEach(i=>{const s=st[i];if(s&&s.lv){if(to)to.cash+=s.lv*HC[T[i].g]/2;s.lv=0;rebuild(i);}
-    if(to)GM.owner[i]=to;else{delete GM.owner[i];delete GM.mort[i];}updateOwner(i);});
+    if(to){GM.owner[i]=to;delete GM.mort[i];}else{delete GM.owner[i];delete GM.mort[i];}updateOwner(i);});
   if(to)to.cash+=Math.max(0,pl.cash);pl.cash=0;scene.remove(pl.mesh);pl.jf.forEach(([k,id])=>GM.decks[k].push(id));pl.jf=[];checkThemes();
   const a=alive();a.forEach(p=>{if(!moving(p))p.mesh.position.copy(slot(p,p.pos));});
   if(a.length===1){GM.phase='over';say(`🏆 ${a[0].name} ha vinto la partita!`);if(!GM.fast)winModal(a[0]);}}
@@ -1170,7 +1170,17 @@ async function market(pl){if(pl.out)return;pl.items=pl.items||[];
   if(!yes||pl.cash<MKT){say(`${pl.name} passa dal mercatino senza comprare.`);return;}
   const it=pickItem();pl.cash-=MKT;pl.items.push([it[0],it[1],it[2],it[3]]);say(`🧺 ${pl.name} compra al mercatino: ${it[1]} ${it[0]} (${RAR[it[3]]}).`);ui();
   if(!GM.fast)await new Promise(res=>{modal(`<div style="text-align:center;font-size:72px;line-height:1">${it[1]}</div><h2 style="text-align:center;color:${RARC[it[3]]}">${it[0]}</h2><p style="text-align:center">Oggetto <b>${RAR[it[3]]}</b>. Scoprirai quanto vale quando lo vendi alla banca, passando dalla Partenza.</p><button class="big pri" id="mOk">OK</button>`);$('mOk').onclick=()=>{modal('');res();};});}
-async function drawCard(pl,k){if(k==='ch'&&Math.random()<.34){const L=SEAS[GM.season||0].cards,c=L[Math.floor(Math.random()*L.length)];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);await c[1](pl);return;}
+/* funzioni speciali delle opere del centro */
+const MONFX={fontana:'A ogni doppio che tiri ritiri '+EUR(30)+'.',ruota:'A ogni passaggio dalla Partenza un giro omaggio: vinci sempre qualcosa.',torre:'Vedi ogni Imprevisto prima di pescarlo e puoi lasciarlo nel mazzo.',stadio:'A ogni cambio di stagione c’è la partita: ogni altro giocatore ti paga '+EUR(30)+'.',castello:'Non paghi più tasse né autovelox.',resort:'A ogni cambio di stagione arrivano i turisti: '+EUR(50)+', in estate '+EUR(150)+'.',osserv:'Chi capita sul Belvedere ti paga '+EUR(40)+'.',seggiovia:'Chi capita sul Belvedere ti paga '+EUR(40)+'.'};
+const monOwners=t=>[...new Set(Object.values(GM.centro||{}).filter(c=>c.t===t&&GM.players[c.o]&&!GM.players[c.o].out).map(c=>GM.players[c.o]))],hasMon=(pl,t)=>monOwners(t).includes(pl);
+function seasonEvents(){monOwners('stadio').forEach(o=>{let tot=0;alive().forEach(p=>{if(p!==o){const v=Math.min(30,Math.max(0,p.cash));p.cash-=v;tot+=v;}});o.cash+=tot;say(`🏟️ Partita allo stadio di ${o.name}: gli altri pagano il biglietto, incassa ${EUR(tot)}.`);});
+  monOwners('resort').forEach(o=>{const v=GM.season===1?150:50;o.cash+=v;say(`🏝️ Turisti al Grand Resort di ${o.name}: incassa ${EUR(v)}.`);});}
+function freeSpin(pl){const r=[20,40,40,80,80,150,'item'][Math.floor(Math.random()*7)];if(r==='item'&&(pl.items=pl.items||[]).length<MKT_MAX){const it=pickItem();pl.items.push([it[0],it[1],it[2],it[3]]);say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${it[1]} ${it[0]} (${RAR[it[3]]}).`);}else{const v=r==='item'?50:r;pl.cash+=v;say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${EUR(v)}.`);}}
+async function mountFee(pl){for(const [t,n] of [['seggiovia','la seggiovia'],['osserv','l’osservatorio']])for(const o of monOwners(t))if(o!==pl&&!pl.out){say(`🚡 ${pl.name} sale al Belvedere e paga ${EUR(40)} a ${o.name} per ${n}.`);await pay(pl,40,o);}}
+async function towerPeek(pl,k,txt){if(k!=='ch'||GM.fast||!hasMon(pl,'torre'))return true;const yes=await new Promise(res=>{modal(`<h2>🗼 Dalla torre vedi la carta</h2><div class="cardTxt">${txt}</div><p>Hai la torre panoramica: puoi pescare questa carta oppure lasciarla nel mazzo.</p><div class="ctrl"><button class="big pri" id="mX">La pesco</button><button class="big" id="tNo">La lascio</button></div>`);$('mX').onclick=()=>{modal('');res(true);};$('tNo').onclick=()=>{modal('');res(false);};});
+  if(!yes)say(`🗼 ${pl.name} guarda la carta dalla torre e la lascia nel mazzo.`);return yes;}
+async function drawCard(pl,k){if(k==='ch'&&Math.random()<.34){const L=SEAS[GM.season||0].cards,c=L[Math.floor(Math.random()*L.length)];if(!(await towerPeek(pl,k,c[0])))return;say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);await c[1](pl);return;}
+  if(!(await towerPeek(pl,k,CARDS[k][GM.decks[k][0]][0]))){GM.decks[k].push(GM.decks[k].shift());return;}
   const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
   if(c[2])pl.jf.push([k,id]);else d.push(id);await c[1](pl);}
 
@@ -1205,8 +1215,8 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
     else if(o!==pl&&t.t==='toll')say(`${pl.name} si ferma al casello di ${o.name}.`);
     else if(o!==pl){if(GM.mort[i])say(`${t.n} è ipotecata: niente affitto.`);else{const dc=(mult&&t.t==='util')?d6()+d6():GM.dice[0]+GM.dice[1],r=rentOf(i,dc,mult);
       say(`💸 ${pl.name} paga ${EUR(r)} di affitto a ${o.name} per ${t.n}.`);await pay(pl,r,o);}}}
-  else if(t.t==='tax'){say(`${pl.name} paga ${EUR(t.p)}: ${t.n}.`);await pay(pl,t.p,null);}
-  else if(t.t==='ch'||t.t==='cc')await drawCard(pl,t.t);
+  else if(t.t==='tax'){if(hasMon(pl,'castello'))say(`🏰 ${pl.name} ha il castello: non paga ${t.n}.`);else{say(`${pl.name} paga ${EUR(t.p)}: ${t.n}.`);await pay(pl,t.p,null);}}
+  else if(t.t==='ch'||t.t==='cc'){if(i===46)await mountFee(pl);if(!pl.out)await drawCard(pl,t.t);}
   else if(i===30)await toJail(pl);
   else if(i===20)await market(pl);
   else if(t.t==='wheel')await wheel(pl);
@@ -1263,6 +1273,7 @@ function flyTick(now){for(let n=FLY.puffs.length-1;n>=0;n--){const p=FLY.puffs[n
   if(k>=1)flyEnd();}
 async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&GM.phase!=='jail'))return;GM.busy=true;
   const a=d6(),b=d6(),dbl=a===b;GM.dice=[a,b];GM.roll=(GM.roll||0)+1;if(!GM.fast){const d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;}ui();await rollDiceAnim(a,b);
+  if(dbl&&hasMon(pl,'fontana')){pl.cash+=30;say(`⛲ Doppio! ${pl.name} ritira ${EUR(30)} dalla sua fontana.`);ui();}
   let move=true,again=false;
   if(pl.jail){if(dbl){pl.jail=0;GM.dbl=0;say(`${pl.name} fa doppio ed esce di prigione.`);}
     else{pl.jail++;if(pl.jail>3){say(`Terzo tentativo fallito: ${pl.name} paga ${EUR(BAIL)} ed esce.`);await pay(pl,BAIL,null);pl.jail=0;}else{move=false;say(`${pl.name} resta in prigione.`);}}}
@@ -1274,7 +1285,7 @@ async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&
   if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}const nx=(again&&!pl.jail)?'roll':'end';GM.after=nx;if(GM.phase!=='auction'){GM.phase=nx;if(nx==='roll')say(`Doppio: ${pl.name} tira ancora.`);}}
   ui();}
 function endTurn(){if(GM.phase!=='end'||GM.busy)return;GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
-  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx} La sagra riapre.`);}else if(GM.sT===SAG_ON*alive().length)say(`🎪 La sagra chiude: riapre alla prossima stagione.`);
+  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx} La sagra riapre.`);seasonEvents();}else if(GM.sT===SAG_ON*alive().length)say(`🎪 La sagra chiude: riapre alla prossima stagione.`);
   GM.phase=pl.jail?'jail':'roll';say(`Tocca a ${pl.name}.`);ui();}
 function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.cash-=BAIL;pl.jail=0;GM.phase='roll';say(`${pl.name} paga ${EUR(BAIL)} ed esce di prigione.`);ui();}
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
@@ -1328,10 +1339,10 @@ function propsModal(k){const p=GM.players[k];if(!p)return;GM.propsOpen=k;const m
 
 /* pagare un debito cedendo proprietà scelte dal debitore */
 function cedeModal(){const d=GM.debt;if(!d||!d.to)return;const p=d.pl,ids=tradable(p).sort((a,b)=>a-b),val=i=>GM.mort[i]?T[i].p/2:T[i].p;
-  modal(`<h2 id="cdh"></h2><p>Devi ancora <b>${EUR(d.amt)}</b>. Scegli tu quali proprietà cedere. Ognuna vale il suo prezzo (la metà se è ipotecata). Se cedi più del debito, la differenza non torna indietro.</p>${ids.map(i=>`<label class="seat" style="font-weight:600;font-size:13.5px"><input type="checkbox" class="cd" value="${i}"><i style="background:${T[i].t==='prop'?G[T[i].g]:'#8892b8'}"></i>${T[i].n}${GM.mort[i]?' (ipotecata)':''}<small>${EUR(val(i))}</small></label>`).join('')||'<p>Non hai proprietà da cedere. Le vie con case nella serie vanno prima liberate vendendo le case.</p>'}<p id="cdt" style="color:#ffe08a;font-weight:800"></p><div class="ctrl"><button class="big pri" id="cGo">Cedi le proprietà scelte</button><button class="big" id="mX">Annulla</button></div>`);
+  modal(`<h2 id="cdh"></h2><p>Devi ancora <b>${EUR(d.amt)}</b>. Scegli tu quali proprietà cedere. Ognuna vale il suo prezzo (la metà se è ipotecata). Chi le riceve le ottiene libere dall’ipoteca, quindi incassa subito gli affitti. Se cedi più del debito, la differenza non torna indietro.</p>${ids.map(i=>`<label class="seat" style="font-weight:600;font-size:13.5px"><input type="checkbox" class="cd" value="${i}"><i style="background:${T[i].t==='prop'?G[T[i].g]:'#8892b8'}"></i>${T[i].n}${GM.mort[i]?' (ipotecata)':''}<small>${EUR(val(i))}</small></label>`).join('')||'<p>Non hai proprietà da cedere. Le vie con case nella serie vanno prima liberate vendendo le case.</p>'}<p id="cdt" style="color:#ffe08a;font-weight:800"></p><div class="ctrl"><button class="big pri" id="cGo">Cedi le proprietà scelte</button><button class="big" id="mX">Annulla</button></div>`);
   $('cdh').textContent='Cedi proprietà a '+d.to.name;const pick=()=>[...$('modal').querySelectorAll('.cd:checked')].map(e=>+e.value),sum=()=>pick().reduce((a,i)=>a+val(i),0);
   const upd=()=>{$('cdt').textContent=`Valore scelto: ${EUR(sum())} · debito che resta: ${EUR(Math.max(0,d.amt-sum()))}`;};$('modal').querySelectorAll('.cd').forEach(e=>e.onchange=upd);upd();$('mX').onclick=()=>modal('');
-  $('cGo').onclick=()=>{const ch=pick();if(!ch.length||GM.debt!==d)return;const v=sum();ch.forEach(i=>{GM.owner[i]=d.to;updateOwner(i);});d.amt=Math.max(0,d.amt-v);say(`${p.name} cede a ${d.to.name}: ${ch.map(i=>T[i].n).join(', ')}.`);checkThemes();modal('');if(d.amt<=0)GM.debtRes(true);else ui();};}
+  $('cGo').onclick=()=>{const ch=pick();if(!ch.length||GM.debt!==d)return;const v=sum();ch.forEach(i=>{GM.owner[i]=d.to;delete GM.mort[i];updateOwner(i);});d.amt=Math.max(0,d.amt-v);say(`${p.name} cede a ${d.to.name}: ${ch.map(i=>T[i].n).join(', ')}.`);checkThemes();modal('');if(d.amt<=0)GM.debtRes(true);else ui();};}
 
 /* centro del paese: si sblocca per chi ha tanti soldi */
 const RICH=2000,PLOTS=[[-9.3,1.9],[-9.3,5],[-9.3,8.1],[9.3,1.9],[9.3,5],[9.3,8.1],[-4.6,2.4],[1.7,4.5],[4.6,2.4],[-1.6,-2.5,'m1'],[4.9,-5.5,'m2']],centroG=[];
@@ -1387,7 +1398,7 @@ function centroModal(){const free=!GM.on,me=free?demo:actor();if(!free&&!canAct(
   if(free&&plot<0)plot=0;
   if(plot<0){modal(`<h2>🏗️ Centro pieno</h2><p>Tutti i lotti del centro sono occupati.</p><button class="big" id="mX">Chiudi</button>`);$('mX').onclick=()=>modal('');return;}
   const draw=()=>{const kind=PLOTS[plot][2]||'';if(type&&((MONS.find(x=>x[0]===type)||[])[3]||'')!==kind)type='';
-    modal(`<h2>🏗️ ${free?'Opere del centro':'Costruisci in centro'}</h2><p>${free?`In partita queste opere si sbloccano quando un giocatore ha almeno ${EUR(RICH)}. Qui puoi provarle tutte liberamente, senza pagare.`:`Hai almeno ${EUR(RICH)}: puoi lasciare il tuo segno su Belluno.`} Ogni opera rende l’8% del suo costo a ogni passaggio dalla Partenza. Sul pendio va la seggiovia, sulla cima l’osservatorio.</p>${free?'<div class="ctrl"><button class="big act" id="cAll">✨ Mostra tutte le opere</button><button class="big" id="cNone">Togli tutte</button></div>':''}<div class="lab">Dove</div><div class="ctrl" style="flex-wrap:wrap">${PLOTS.map((_,k)=>`<button class="cp ${k===plot?'on':''}" data-k="${k}" ${GM.centro[k]&&!free?'disabled':''}>${plotName(k)}${free&&GM.centro[k]?' ✓':''}</button>`).join('')}</div><div class="lab">Cosa</div>${MONS.filter(m=>(m[3]||'')===kind).map(([key,n,c])=>`<button class="big cm ${key===type?'on':''}" data-t="${key}" ${!free&&me.cash<c?'disabled':''}>${n} · ${EUR(c)} · rende ${EUR(monNow(key))} a giro${monNow(key)!==monInc(key)?' ('+SEAS[GM.season||0].n.toLowerCase()+')':''}</button>`).join('')}<div class="ctrl"><button class="big pri" id="cGo" ${type?'':'disabled'}>${free?'Mostra qui':'Costruisci'}</button>${free&&GM.centro[plot]?'<button class="big" id="cDel">Togli da qui</button>':''}<button class="big" id="mX">${free?'Chiudi':'Annulla'}</button></div>`);
+    modal(`<h2>🏗️ ${free?'Opere del centro':'Costruisci in centro'}</h2><p>${free?`In partita queste opere si sbloccano quando un giocatore ha almeno ${EUR(RICH)}. Qui puoi provarle tutte liberamente, senza pagare.`:`Hai almeno ${EUR(RICH)}: puoi lasciare il tuo segno su Belluno.`} Ogni opera rende l’8% del suo costo a ogni passaggio dalla Partenza. Sul pendio va la seggiovia, sulla cima l’osservatorio.</p>${free?'<div class="ctrl"><button class="big act" id="cAll">✨ Mostra tutte le opere</button><button class="big" id="cNone">Togli tutte</button></div>':''}<div class="lab">Dove</div><div class="ctrl" style="flex-wrap:wrap">${PLOTS.map((_,k)=>`<button class="cp ${k===plot?'on':''}" data-k="${k}" ${GM.centro[k]&&!free?'disabled':''}>${plotName(k)}${free&&GM.centro[k]?' ✓':''}</button>`).join('')}</div><div class="lab">Cosa</div>${MONS.filter(m=>(m[3]||'')===kind).map(([key,n,c])=>`<button class="big cm ${key===type?'on':''}" data-t="${key}" ${!free&&me.cash<c?'disabled':''}>${n} · ${EUR(c)} · rende ${EUR(monNow(key))} a giro${monNow(key)!==monInc(key)?' ('+SEAS[GM.season||0].n.toLowerCase()+')':''}<br><small style="font-weight:600;opacity:.85">${MONFX[key]||''}</small></button>`).join('')}<div class="ctrl"><button class="big pri" id="cGo" ${type?'':'disabled'}>${free?'Mostra qui':'Costruisci'}</button>${free&&GM.centro[plot]?'<button class="big" id="cDel">Togli da qui</button>':''}<button class="big" id="mX">${free?'Chiudi':'Annulla'}</button></div>`);
     if(free){const put=(k,t)=>{if(t)GM.centro[k]={t,o:-1};else delete GM.centro[k];buildCentro(k);};
       $('cAll').onclick=()=>{const gr=MONS.filter(m=>!m[3]);PLOTS.forEach((p,k)=>put(k,p[2]?MONS.find(m=>m[3]===p[2])[0]:gr[k%gr.length][0]));SFX.build();modal('');};
       $('cNone').onclick=()=>{PLOTS.forEach((_,k)=>put(k,''));modal('');};if($('cDel'))$('cDel').onclick=()=>{put(plot,'');draw();};
@@ -1407,11 +1418,11 @@ function rulesModal(){const R=[
  ['🎪 Via delle sagre',`È la via con le bancarelle sul lato sinistro. <b>Si entra dall’angolo della Prigione</b> e si esce al Mercatino: 5 caselle al posto delle 9 vie di quel lato. È aperta solo nei primi due giri di turni di ogni stagione: quando è chiusa le caselle sono grigie e ci sono le sbarre. L’ingresso costa ${EUR(SAG_FEE)}. Non puoi entrarci due giri di fila. Dentro: <b>tiro a segno</b> (vinci ${EUR(60)} o perdi ${EUR(30)}), <b>osteria</b> (paghi ${EUR(15)} a ogni giocatore), <b>lotteria</b> (biglietto ${EUR(20)}, primo premio ${EUR(500)}), <b>ballo in piazza</b> (ogni giocatore ti dà ${EUR(15)}), <b>pesca di beneficenza</b> (un oggetto gratis).`],
  ['✈️ Aeroporto e voli',`Se capiti sull’Aeroporto puoi comprare un <b>biglietto</b> a ${EUR(AIRTK)}. I soldi vanno al proprietario dell’Aeroporto (lui lo paga ${EUR(AIRTK/5)}). Ne tieni uno solo. All’inizio di un tuo turno puoi usarlo <b>al posto dei dadi</b>: voli su una stazione, su un angolo o su una tua proprietà. Volando alla Partenza non prendi lo stipendio. Il biglietto scade la seconda volta che passi dalla Partenza. Non si usa dalla prigione.`],
  ['🧺 Mercatino',`Nell’angolo in alto a sinistra. Paghi ${EUR(MKT)} e scegli un oggetto coperto: può valere poco o tantissimo. Lo scopri quando lo vendi alla banca, passando dalla Partenza. Massimo ${MKT_MAX} oggetti.`],
- ['🏗️ Opere del centro',`Quando hai almeno <b>${EUR(RICH)}</b> in contanti compare il pulsante per costruire una grande opera (stadio, castello, ruota…). Ti rende l’8% del suo costo a ogni passaggio dalla Partenza.`],
+ ['🏗️ Opere del centro',`Quando hai almeno <b>${EUR(RICH)}</b> in contanti compare il pulsante per costruire una grande opera (stadio, castello, ruota…). Ti rende l’8% del suo costo a ogni passaggio dalla Partenza. In più ogni opera ha un potere: ${MONS.map(m=>'<b>'+m[1]+'</b>: '+MONFX[m[0]]).join(' ')}`],
  ['👔 Manager e operai',`In <b>📋 Le mie proprietà</b> puoi assumere personale. Il <b>manager</b> va su una serie completa: gli affitti di quella serie salgono del 20%. Costa ${EUR(MGR_PAY)} subito e a ogni passaggio dalla Partenza. Gli <b>operai</b> vanno su stazioni e società: affitto +50%, ${EUR(WRK_PAY)} subito e a ogni giro. Li licenzi quando vuoi. Se non hai i soldi della paga, se ne vanno. Alla Partenza il <b>giorno di paga</b> ti dice quanto incassi e quanto paghi.`],
  ['🗓️ Stagioni','Cambiano ogni 3 giri. Ogni stagione fa rendere di più alcune opere e ha i suoi imprevisti. La scritta in alto a sinistra dice quale stagione è.'],
  ['⛓️ Prigione',`Esci con un doppio, pagando ${EUR(BAIL)}, oppure con la carta. Al terzo tentativo fallito paghi e esci.`],
- ['💸 Se finisci i soldi','Vendi le case (a metà prezzo), ipoteca le proprietà (incassi metà prezzo, niente affitto finché non riscatti) oppure cedi proprietà a chi devi pagare. Se non basta, sei in bancarotta.'],
+ ['💸 Se finisci i soldi','Vendi le case (a metà prezzo), ipoteca le proprietà (incassi metà prezzo, niente affitto finché non riscatti) oppure cedi proprietà a chi devi pagare: chi le riceve le ottiene libere dall’ipoteca. Se non basta, sei in bancarotta.'],
  ['🤝 Scambi','Nel tuo turno puoi proporre a un altro giocatore uno scambio di proprietà e soldi. Lui accetta o rifiuta.']];
   modal(`<h2>📖 Regole in breve</h2>${R.map(r=>`<div><b style="font-size:15.5px">${r[0]}</b><p style="margin-top:3px">${r[1]}</p></div>`).join('')}<button class="big pri" id="mX">Ho capito</button>`);$('mX').onclick=()=>modal('');}
 
@@ -1490,6 +1501,7 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   else if(m.startsWith('🎡'))fxBanner('🎡 RUOTA DELLA FORTUNA',nm,'#ffd23d',1);
   else if(m.startsWith('🎟️')&&m.includes('primo premio')){fxBanner('🎟️ PRIMO PREMIO!',nm,'#ffd23d');fxRain(['🎟️','💶','🎉'],40);}
   else if(/^(🎪|🎯|🍷|🎟️|🎶|🎁)/.test(m))fxBanner('🎪 SAGRA',nm,'#ffd23d',1);
+  else if(/^(🏟️|⛲|🏰|🚡|🗼|🏝️)/.test(m))fxBanner(m.split(' ')[0]+' OPERA DEL CENTRO',nm,'#ffd23d',1);
   else if(m.startsWith('🧾'))fxBanner('🧾 GIORNO DI PAGA',nm.replace('Giorno di paga di ',''),'#7dff9b',1);
   else if(m.startsWith('👔'))fxBanner('👔 MANAGER ASSUNTO',nm,'#ffd23d',1);
   else if(m.startsWith('👷'))fxBanner('👷 OPERAI AL LAVORO',nm,'#ffd23d',1);
@@ -1568,7 +1580,7 @@ function renderHand(){const h=$('hand'),p=GM.on?(NET.on?GM.players[mySeat()]:cur
   $('handS').onclick=()=>{HSORT={colore:'valore',valore:'nome',nome:'colore'}[HSORT]||'colore';try{localStorage.setItem('rdb_sort',HSORT);}catch(e){}renderHand();};
   h.querySelectorAll('.hc[data-i]').forEach(e=>e.onclick=()=>select(+e.dataset.i));const tc=h.querySelector('.hc.tk');if(tc)tc.onclick=flyModal;}
 function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
-  else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾')||(/^(🎯|🎟️|🎁)/.test(m)&&m.includes(' vince ')))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
+  else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾')||/^(🏟️|⛲|🏝️)/.test(m)||(/^(🎯|🎟️|🎁)/.test(m)&&m.includes(' vince ')))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
 /* ================= ONLINE ================= */
@@ -1812,7 +1824,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}if(document.hidden)flyTick(now);},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={Z,K,CEN,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
+window.__dbg={Z,K,CEN,hasMon,monOwners,seasonEvents,MONFX,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
 </script>
 </body>
 </html>
