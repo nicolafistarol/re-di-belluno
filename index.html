@@ -250,12 +250,13 @@ const T=[
 /* strada interna: 8 caselle dalla Stazione dei treni (5) alle Scale mobili (25) */
 T.push({t:'toll',n:'Casello',ic:'🚧',p:500,sub:'Pedaggio'},{t:'wheel',n:'Ruota della fortuna',ic:'🎡',sub:'Vinci o perdi'},{t:'air',n:'Aeroporto',ic:'✈️',p:300,sub:'Biglietti aerei'},{t:'rest',n:'Parco',ic:'🌳',sub:'Riposo'},
   {t:'gift',n:'Ponte sul Piave',ic:'🌉',sub:'+ 30.000 €'},{t:'tax',n:'Autovelox',ic:'📸',p:60},{t:'ch',n:'Belvedere',ic:'🔭',sub:'Imprevisto'},{t:'pawn',n:'Banco dei pegni',ic:'💰',sub:'Oggetti +50%'});
+T.push({t:'sgt',n:'Tiro a segno',ic:'🎯',sub:'Vinci o perdi'},{t:'sgo',n:'Osteria',ic:'🍷',sub:'Offri da bere'},{t:'sgl',n:'Lotteria',ic:'🎟️',sub:'Tenta la fortuna'},{t:'sgb',n:'Ballo in piazza',ic:'🎶',sub:'Tutti ti pagano'},{t:'sgp',n:'Pesca di beneficenza',ic:'🎁',sub:'Oggetto gratis'});
 const INNER=[[0,10.9],[-2.6,8.6],[-4.9,6],[-1.9,3],[1.2,-1],[2.8,-2.3],[-.9,-6.1],[0,-10.7]],TOLL=80,AIRTK=100,
-  nxt=(p,inner)=>p>=40?(p===47?25:p+1):(p===5&&inner?40:(p+1)%40),prv=p=>p>=40?(p===40?5:p-1):(p+39)%40,
+  nxt=(p,br)=>p>=48?(p===52?20:p+1):p>=40?(p===47?25:p+1):(p===5&&br===true?40:p===10&&br==='s'?48:(p+1)%40),prv=p=>p>=48?(p===48?10:p-1):p>=40?(p===40?5:p-1):(p+39)%40,
   ROADPTS=(()=>{const P=[[0,14.1]].concat(INNER.slice(0,6)),o=[];for(let k=0;k<P.length-1;k++)for(let u=0;u<1;u+=.2)o.push([P[k][0]+(P[k+1][0]-P[k][0])*u,P[k][1]+(P[k+1][1]-P[k][1])*u]);o.push(P[P.length-1]);return o;})(),
   HIPTS=(()=>{const P=[INNER[5],INNER[6],INNER[7]],o=[];for(let k=0;k<2;k++)for(let u=0;u<=1;u+=.125)o.push([P[k][0]+(P[k+1][0]-P[k][0])*u,P[k][1]+(P[k+1][1]-P[k][1])*u]);return o;})();
 function dist(a,b){let n=0,p=a;while(p!==b&&n<64){p=nxt(p,false);n++;}return n;}
-function routeTo(a,b){const o=[];let p=a,n=0;while(p!==b&&n<13){p=nxt(p,false);o.push(p);n++;}if(p===b)return o;const q=[];p=a;n=0;while(p!==b&&n<18){p=nxt(p,true);q.push(p);n++;}return p===b?q:null;}
+function routeTo(a,b){for(const br of [false,true,'s']){const o=[];let p=a,n=0;while(p!==b&&n<(br?18:13)){p=nxt(p,br);o.push(p);n++;}if(p===b)return o;}return null;}
 const WALLS=['#fff3de','#ffe1c2','#f7c9c9','#cfe8ff','#d8f0d0','#f3e3a0','#e6dcf7','#c9c2b8','#ffffff','#e8b98a','#b9d4c0','#8fa3b8'];
 const ACCS=['#955436','#8fd3f4','#d93a96','#f7941d','#ed1b24','#ffe600','#1fb25a','#0072bb','#5b6477','#ffffff','#2b2b2b','#3d6b4a'];
 const ROOFS=['#955436','#8fd3f4','#d93a96','#f7941d','#ed1b24','#ffe600','#1fb25a','#0072bb','#5b6477','#7a3b2e'];
@@ -466,9 +467,34 @@ function buildBoard(){
       for(let k=0;k<5;k++){const st=box(.142,.03,.44,k%2?'#ffffff':AW[n],-.284+k*.142,.76,.02);st.rotation.x=.16;q.add(st);}
       for(let k=0;k<4;k++){const it=k%2?box(.08,.08+k*.02,.08,GD[(n+k)%6],-.22+k*.15,.37,0):new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),M(GD[(n+k)%6],{metalness:.4,roughness:.4}));if(!(k%2))it.position.set(-.22+k*.15,.375,0);it.castShadow=true;q.add(it);}
       q.add(tbox(.2,.16,.2,wd,.42,.08,.2));tg.add(q);});}}
-  scenery();buildInner();lifeScene();
+  scenery();buildInner();buildSagra();lifeScene();
   const rr2=rnd(99);for(let n=0;n<110;n++){const a=rr2()*6.283,R=H+3+rr2()*38,tx=Math.cos(a)*R,tz=Math.sin(a)*R;if(Math.abs(tx)<H+5.6&&Math.abs(tz)<H+5.6)continue;scene.add(tree(tx,tz,1.3+rr2()*1.4,rr2()>.7?1:0));}
 }
+/* via delle sagre: 5 caselle sul lato sinistro, tra il centro e i lotti. Aperta solo nei primi SAG_ON giri di turni di ogni stagione */
+const SAG={g:null,open:null,closed:null,mats:[],v:null},SAG_FEE=30,SAG_ON=2;
+function buildSagra(){const X=-14.75,ZE=15.2,g=new THREE.Group(),op=new THREE.Group(),cl=new THREE.Group(),pv=MT('pave','#d9cdb4'),wd=MT('planks','#8b5e3c'),COL=['#e23b3b','#2f7ff0','#2fb86a','#f7941d','#d93a96','#ffd23d'];scene.add(g);g.add(op,cl);SAG.g=g;SAG.open=op;SAG.closed=cl;
+  const pl=(w,d,x,z,ry)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),pv);m.rotation.x=-Math.PI/2;if(ry)m.rotation.z=ry;m.position.set(x,.02,z);m.receiveShadow=true;g.add(m);};
+  pl(2.1,2*ZE,X,0);[1,-1].forEach(q=>pl(2.1,4.4,X-1.75,q*(ZE+1.05),q*-.82));
+  for(let k=0;k<5;k++){const i=48+k,t=T[i],z=12-k*6,q=new THREE.Group();q.position.set(X,0,z);scene.add(q);tileG[i]=q;
+    const mm=new THREE.MeshStandardMaterial({map:tex(innerCanvas(t)),roughness:.85,envMapIntensity:.35}),m=new THREE.Mesh(new THREE.CircleGeometry(1.0,44),mm);m.rotation.x=-Math.PI/2;m.position.y=.05;m.receiveShadow=true;m.userData.i=i;q.add(m);tileMeshes.push(m);SAG.mats.push(mm);PATH[i]=new THREE.Vector3(X,.05,z);}
+  /* portali alle due estremità */
+  [ZE-.4,-ZE+.4].forEach(z=>{[-1,1].forEach(q=>g.add(tbox(.2,3,.2,wd,X+q*1.15,1.5,z)));g.add(tbox(2.5,.16,.16,wd,X,3,z));
+    [['★ SAGRA ★','#e23b3b',op],['CHIUSA','#5f6470',cl]].forEach(([txt,col,par])=>{const c=cv(512,128),x=c.getContext('2d');x.fillStyle=col;x.fillRect(0,0,512,128);x.strokeStyle='#fff';x.lineWidth=10;x.strokeRect(5,5,502,118);x.font='900 70px Outfit,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fff';x.fillText(txt,256,68,470);
+      const sm=new THREE.MeshStandardMaterial({map:tex(c),roughness:.6});[1,-1].forEach(q=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(2.1,.52),sm);p.rotation.y=q>0?0:Math.PI;p.position.set(X,2.58,z+q*.06);par.add(p);});par.add(box(2.1,.54,.08,'#3a2616',X,2.58,z));});
+    cl.add(box(2.3,.15,.1,'#e23b3b',X,.9,z),box(2.3,.15,.1,'#ffffff',X,.6,z));[-1,1].forEach(q=>cl.add(box(.1,1,.1,'#dfe3ee',X+q*1.1,.5,z)));
+    for(let j=0;j<=10;j++){const c2=COL[j%6],b=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),M(c2,{emissive:c2,emissiveIntensity:1.2}));b.position.set(X-1.15+j*.23,3.2,z);op.add(b);}});
+  /* bancarelle tra una casella e l'altra, festoni di luci, bandierine, gente */
+  for(let k=0;k<4;k++)[-1,1].forEach((sd,n)=>{const q=new THREE.Group();q.position.set(X+sd*.62,0,9-k*6+sd*.9);q.rotation.y=sd>0?-Math.PI/2:Math.PI/2;q.scale.setScalar(1.15);
+    q.add(tbox(.9,.06,.44,wd,0,.36,0));[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([u,v])=>q.add(box(.035,.9,.035,'#dfe3ee',u*.42,.45,v*.2)));
+    for(let j=0;j<6;j++){const a=box(.152,.035,.56,j%2?'#ffffff':COL[(k*2+n)%6],-.38+j*.152,.93,.03);a.rotation.x=.18;q.add(a);}
+    for(let j=0;j<5;j++){const it=new THREE.Mesh(new THREE.SphereGeometry(.055,10,8),M(COL[(j+k)%6],{roughness:.4}));it.position.set(-.3+j*.15,.44,0);q.add(it);}op.add(q);});
+  for(let z=-ZE+2;z<ZE-1;z+=2.8){[-1,1].forEach(q=>op.add(box(.05,2,.05,'#3a2a22',X+q*1.02,1,z)));for(let j=0;j<=8;j++){const c=j%2?'#ffffff':'#ffd66b',b=new THREE.Mesh(new THREE.SphereGeometry(.055,8,6),M(c,{emissive:c,emissiveIntensity:1.3}));b.castShadow=false;b.position.set(X-1.02+j*.255,1.96-.26*Math.sin(Math.PI*j/8),z);op.add(b);}
+    for(let j=1;j<10;j++){const f=new THREE.Mesh(new THREE.ConeGeometry(.07,.15,3),M(COL[j%6],{side:THREE.DoubleSide}));f.rotation.x=Math.PI;f.scale.z=.12;f.position.set(X-1.02+j*.204,1.74-.2*Math.sin(Math.PI*j/10),z+1.4);f.castShadow=false;op.add(f);}}
+  const SKN=['#f1c9a5','#d9a074','#a86b3c'];for(let n=0;n<20;n++){const p=new THREE.Group(),cy=(rt,rb,h,c,y)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,8),M(c));m.position.y=y;m.castShadow=true;return m;};p.add(cy(.07,.06,.24,'#2b3350',.12),cy(.095,.085,.3,COL[n%6],.39));const h=new THREE.Mesh(new THREE.SphereGeometry(.078,10,8),M(SKN[n%3]));h.position.y=.63;p.add(h);p.scale.setScalar(1.2);
+    const z=-ZE+2+((n*53)%100)*.265;if([12,6,0,-6,-12].some(c=>Math.abs(z-c)<1.15))continue;p.position.set(X+((n*37)%13-6)*.11,0,z);p.rotation.y=n*1.7;op.add(p);}
+  sagSync();}
+const sagOpen=()=>!GM.on||(GM.sT||0)<SAG_ON*alive().length;
+function sagSync(){if(!SAG.g)return;const o=sagOpen();if(o===SAG.v)return;SAG.v=o;SAG.open.visible=o;SAG.closed.visible=!o;SAG.mats.forEach(m=>m.color.set(o?0xffffff:0x4f4f4f));}
 const MTS=[[-6.07,-5.03,3.06,3.6,1],[-2.76,-6.2,3.6,5,2],[.92,-5.54,3.42,4.2,3],[4.42,-6.2,3.5,4.6,4],[7.36,-4.85,2.7,3.2,5],[-8.1,-6.75,2.16,2.6,6],[3.2,-7.61,2.3,3.2,7],[-5.15,-7.61,2.34,3,8],[7.9,-7.43,2.25,2.6,9]],MTM=[],clouds=[];let balloon=null;
 const gray=new THREE.Raycaster();
 /* coordinate del centro (prima dell'ingrandimento K) */
@@ -480,8 +506,8 @@ function scenery(){
     q.add(box(.02,.6,.02,'#dfe3ee',.48,.4,.32));const f=new THREE.Mesh(new THREE.PlaneGeometry(.26,.16),M('#ed1b24',{side:THREE.DoubleSide}));f.position.set(.62,.62,.32);q.add(f);CEN.add(q);
     const cy=groundY(MTS[1][0],MTS[1][1]),c=new THREE.Group();c.position.set(MTS[1][0],cy-.1,MTS[1][1]);c.add(box(.06,.75,.06,'#e6e9f0',0,.35,0,{metalness:.8,roughness:.3}),box(.38,.06,.06,'#e6e9f0',0,.5,0,{metalness:.8,roughness:.3}));CEN.add(c);}
   const wtr=M('#2f79b0',{roughness:.05,metalness:.75}),stn=MT('pave','#a8a29a');
-  {const lake=new THREE.Mesh(new THREE.CircleGeometry(1,44),wtr);lake.rotation.x=-Math.PI/2;lake.scale.set(1.75,1.1,1);lake.position.set(-8.9,.014,-1.45);CEN.add(lake);
-    const sh=new THREE.Mesh(new THREE.RingGeometry(1,1.1,44),MT('pave','#cdbf9f'));sh.rotation.x=-Math.PI/2;sh.scale.set(1.75,1.1,1);sh.position.set(-8.9,.013,-1.45);sh.receiveShadow=true;CEN.add(sh);
+  {const lake=new THREE.Mesh(new THREE.CircleGeometry(1,44),wtr);lake.rotation.x=-Math.PI/2;lake.scale.set(1.75,1.1,1);lake.position.set(-8.6,.014,-1.45);CEN.add(lake);
+    const sh=new THREE.Mesh(new THREE.RingGeometry(1,1.1,44),MT('pave','#cdbf9f'));sh.rotation.x=-Math.PI/2;sh.scale.set(1.75,1.1,1);sh.position.set(-8.6,.013,-1.45);sh.receiveShadow=true;CEN.add(sh);
     CEN.add(box(.42,.08,.17,'#8b5e3c',-9.4,.06,-1.3),box(.3,.02,.02,'#d9c9a0',-9.4,.11,-1.3),box(.5,.05,.9,'#8b5e3c',-7.9,.08,-.7));}
   [-3.4,5.6].forEach(bx=>{const b=new THREE.Group();b.position.set(bx,0,-1);b.add(tbox(.8,.12,1.75,stn,0,.2,0),tbox(.8,.2,.22,stn,0,.1,-.77),tbox(.8,.2,.22,stn,0,.1,.77));[-1,1].forEach(k=>b.add(tbox(.07,.17,1.75,stn,k*.37,.34,0)));CEN.add(b);});
   const rc=rnd(77);for(let n=0;n<11;n++){const c=new THREE.Group();for(let k=0;k<4;k++){const b=new THREE.Mesh(BLOBS[k%3],CLOUDM);b.scale.set(1.7+rc()*1.4,.6+rc()*.4,1.1+rc()*.8);b.position.set((k-1.5)*1.6+rc(),rc()*.4,rc()*1.2-.6);c.add(b);}
@@ -525,7 +551,7 @@ function lifeScene(){
     const hd=new THREE.Mesh(new THREE.SphereGeometry(.078,10,8),M(SK[k%5]));hd.position.y=.63;hd.castShadow=true;g.add(hd);if(k%3===0)g.add(cy(.085,.085,.035,CC[(k+3)%9],0,.7,0),cy(.12,.12,.012,CC[(k+3)%9],0,.685,0));
     if(k%4===1)g.add(box(.09,.12,.05,CC[(k+5)%9],0,.4,-.11));g.scale.setScalar(.95+rv()*.4);scene.add(g);return g;};
   for(let n=0;n<16;n++)movers.push({g:person(),R:SWR+(rv()-.5)*.34,dir:rv()<.5?1:-1,sp:.4+rv()*.5,t0:rv(),bob:rv()*6});
-  [[-7.5,-.16,11.6,-.16],[-4.6,7.3,4.6,7.3],[-7.4,.5,-7.4,10.6],[7.4,.5,7.4,10.6],[-11.3,-.16,-7.6,-.16],[-.5,4.4,-.5,7.4]].forEach((l,k)=>{for(let q=0;q<(k<4?2:1);q++)movers.push({g:person(),line:l,sp:.4+rv()*.45,t0:rv(),bob:rv()*6});});
+  [[-7.5,-.16,11.6,-.16],[-4.6,7.3,4.6,7.3],[-7.4,.5,-7.4,10.6],[7.4,.5,7.4,10.6],[-10.6,-.16,-7.6,-.16],[-.5,4.4,-.5,7.4]].forEach((l,k)=>{for(let q=0;q<(k<4?2:1);q++)movers.push({g:person(),line:l,sp:.4+rv()*.45,t0:rv(),bob:rv()*6});});
 }
 function lifeTick(now){const T4=now/1000;movers.forEach(m=>{let x,z,ry;
   if(m.line){const [x1,z1,x2,z2]=m.line,len=Math.hypot(x2-x1,z2-z1),u=((T4*m.sp/len/2+m.t0)%1+1)%1,f=u<.5?u*2:2-u*2,fw=u<.5?1:-1;x=(x1+(x2-x1)*f)*K;z=(z1+(z2-z1)*f)*K;ry=Math.atan2(-(z2-z1)*fw,(x2-x1)*fw);}
@@ -540,12 +566,12 @@ function setSeason(s){SEASON=s=((s|0)%4+4)%4;SEASM.forEach(seasonTint);seasonMou
 function seasChip(){const c=$('seas');if(!c)return;const S=SEAS[SEASON];c.style.display='';c.title=S.fx;if(GM.on){const left=Math.max(1,SEAS_LEN*alive().length-(GM.sT||0));c.textContent=`${S.ic} ${S.n} · cambia tra ${left} ${left===1?'turno':'turni'}`;}else c.textContent=S.ic+' '+S.n;}
 function seasonTick(now){if(!snowP||!snowP.visible)return;const p=snowP.geometry.attributes.position,a=p.array,n=snowP.geometry.drawRange.count,w=SEASON===3,sp=w?.055:.026;
   for(let i=0;i<n;i++){a[i*3+1]-=sp*(1+(i%5)*.15);a[i*3]+=Math.sin(now*.001+i)*(w?.006:.02);if(a[i*3+1]<0)a[i*3+1]=24;}p.needsUpdate=true;}
-const INCOL={toll:'#f7941d',wheel:'#9b5cf0',air:'#2f7ff0',rest:'#2fb86a',gift:'#2fb86a',tax:'#b3261e',ch:'#f7941d',pawn:'#d9a520'};
+const INCOL={sgt:'#e23b3b',sgo:'#9b2d5a',sgl:'#f7941d',sgb:'#2f7ff0',sgp:'#2fb86a',toll:'#f7941d',wheel:'#9b5cf0',air:'#2f7ff0',rest:'#2fb86a',gift:'#2fb86a',tax:'#b3261e',ch:'#f7941d',pawn:'#d9a520'};
 function innerCanvas(t){const c=cv(640),x=c.getContext('2d'),col=INCOL[t.t]||'#7a4fd6';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fbf7ea';x.beginPath();x.arc(320,320,312,0,7);x.fill();x.lineWidth=26;x.strokeStyle=col;x.beginPath();x.arc(320,320,300,0,7);x.stroke();
   x.font='150px serif';x.fillText(t.ic,320,160);
   let size=84,L;for(;;size-=3){x.font=`900 ${size}px Outfit,sans-serif`;L=[];let l='';t.n.toUpperCase().split(' ').forEach(k=>{const q=l?l+' '+k:k;if(x.measureText(q).width>500&&l){L.push(l);l=k;}else l=q;});L.push(l);if((L.length<=2&&L.every(q=>x.measureText(q).width<=510))||size<=30)break;}
   x.fillStyle='#17224a';const y0=L.length>1?308:345;L.forEach((q,n)=>x.fillText(q,320,y0+n*(size+2)));
-  const sub=t.p?(t.t==='tax'?'− ':'')+EUR(t.p):(t.sub||''),sy=y0+L.length*(size+2)+8;x.font='900 48px Outfit,sans-serif';const sw=Math.min(400,x.measureText(sub).width+50);x.fillStyle=col;rr(x,320-sw/2,sy-34,sw,68,34);x.fill();x.fillStyle=(t.t==='toll'||t.t==='ch'||t.t==='pawn')?'#10162f':'#fff';x.fillText(sub,320,sy+2,sw-28);return c;}
+  const sub=t.p?(t.t==='tax'?'− ':'')+EUR(t.p):(t.sub||''),sy=y0+L.length*(size+2)+8;x.font='900 48px Outfit,sans-serif';const sw=Math.min(400,x.measureText(sub).width+50);x.fillStyle=col;rr(x,320-sw/2,sy-34,sw,68,34);x.fill();x.fillStyle=(t.t==='toll'||t.t==='ch'||t.t==='pawn'||t.t==='sgl')?'#10162f':'#fff';x.fillText(sub,320,sy+2,sw-28);return c;}
 function buildInner(){const stn=MT('pave','#a8a29a'),rm=M('#8f8a84',{roughness:.95}),V=(x,z)=>new THREE.Vector3(x,.03,z);
   const ribbon=(pts,w)=>{const cur=new THREE.CatmullRomCurve3(pts,false,'catmullrom',.4),N=pts.length*10,pos=[],idx=[];for(let k=0;k<=N;k++){const p=cur.getPoint(k/N),t=cur.getTangent(k/N),nx=-t.z,nz=t.x,l=Math.hypot(nx,nz)||1;pos.push(p.x+nx/l*w,p.y,p.z+nz/l*w,p.x-nx/l*w,p.y,p.z-nz/l*w);if(k<N){const a=k*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const m=new THREE.Mesh(g,M('#8f8a84',{roughness:.95,side:THREE.DoubleSide}));m.receiveShadow=true;CEN.add(m);};
@@ -941,7 +967,7 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(pl===curP()){const d=PATH[to].clone().sub(PATH[pl.pos]);d.y=0;if(d.lengthSq()>.01)dir.copy(d.normalize());yawOff=0;}
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=PATH[pl.pos]?PATH[pl.pos].y:0;segs.push({pl,a,b,t0:performance.now(),to,res,dur:dur||250});SFX.step();});}
-async function advance(pl,n,noChoice){for(let k=0;k<n;k++){if(pl.out)break;let inner=false;if(pl.pos===5&&!noChoice)inner=await routeAsk(pl);if(pl.out)break;await hop(pl,nxt(pl.pos,inner),n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);payday(pl,SAL,mo,sellItems(pl));pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}}face(pl);}
+async function advance(pl,n,noChoice){for(let k=0;k<n;k++){if(pl.out)break;let inner=false;if(pl.pos===5&&!noChoice)inner=await routeAsk(pl);else if(pl.pos===10&&!noChoice&&(await sagAsk(pl)))inner='s';if(pl.out)break;await hop(pl,nxt(pl.pos,inner),n>12?110:250);if(pl.pos===0&&GM.on){const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla Partenza e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);payday(pl,SAL,mo,sellItems(pl));pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}}face(pl);}
 const goTo=(pl,i)=>advance(pl,dist(pl.pos,i),true);
 async function back(pl,n){for(let k=0;k<n;k++)await hop(pl,prv(pl.pos));face(pl);}
 async function routeAsk(pl){const o=GM.on?GM.owner[40]:null,fee=!GM.on?0:o===pl?TOLL/2:TOLL,tw=o&&o!==pl&&!GM.mort[40]?o:null;if(GM.on&&pl.noIn){pl.noIn=false;say(`🚧 ${pl.name} ha preso la strada interna al giro scorso: questa volta resta sul giro esterno.`);return false;}if(GM.on&&pl.cash<fee)return false;
@@ -991,10 +1017,9 @@ function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return
   if(t.t==='sta')return Math.round(25*Math.pow(2,RR.filter(k=>GM.owner[k]===o).length-1)*(mult?2:1)*(i===35&&GM.season===3?2:1)*(wrkOn(i)?1.5:1));
   return Math.round(dice*(mult||UT.every(k=>GM.owner[k]===o)?10:4)*(GM.season===1?1.5:1)*(wrkOn(i)?1.5:1));}
 function whyNoBuild(pl,i){const t=T[i],s=st[i];if(!s)return 'Qui non si costruisce.';if(GM.owner[i]!==pl)return 'Questa via non è tua.';if(!hasSet(pl,t.g))return 'Ti serve tutta la serie '+GN[t.g]+'.';
-  const ids=groupIds(t.g);if(ids.some(k=>GM.mort[k]))return 'Una via della serie è ipotecata.';if(s.lv>=5)return "C'è già l'albergo.";
-  if(pl.cash<HC[t.g])return 'Non hai abbastanza soldi.';
-  const all=Object.values(st),hs=all.reduce((a,x)=>a+(x.lv<5?x.lv:0),0),ho=all.filter(x=>x.lv===5).length;
-  if(s.lv<4&&hs>=32)return 'La banca ha finito le case.';if(s.lv===4&&ho>=12)return 'La banca ha finito gli alberghi.';return '';}
+  const ids=groupIds(t.g);if(ids.some(k=>GM.mort[k]))return 'Una via di questa serie è ipotecata ('+ids.filter(k=>GM.mort[k]).map(k=>T[k].n).join(', ')+'). Riscattala prima.';if(s.lv>=5)return "C'è già l'albergo.";
+  if(pl.cash<HC[t.g])return 'Una casa qui costa '+EUR(HC[t.g])+' e non li hai.';
+  return '';}
 function whyNoSell(pl,i){const t=T[i],s=st[i];if(!s||GM.owner[i]!==pl)return 'Questa via non è tua.';if(s.lv<=0)return 'Non ci sono case da vendere.';
   return '';}
 function whyNoMort(pl,i){const t=T[i];if(GM.owner[i]!==pl)return 'Non è tua.';if(GM.mort[i])return 'È già ipotecata.';if(t.t==='prop'&&groupIds(t.g).some(k=>st[k].lv>0))return 'Prima vendi le case della serie.';return '';}
@@ -1068,7 +1093,7 @@ function tradeResolve(ok){const t=GM.trade;if(!t||GM.phase!=='trade')return;cons
   GM.phase=t.ret||'end';GM.trade=null;ui();}
 
 /* carte: testi nostri, stessi effetti e stesse quantità del gioco classico */
-const mvTo=i=>async pl=>{await goTo(pl,i);await land(pl);},near=list=>async pl=>{const ps=pl.pos>=40?24:pl.pos,i=list.find(k=>k>ps);await goTo(pl,i===undefined?list[0]:i);await land(pl,true);};
+const mvTo=i=>async pl=>{await goTo(pl,i);await land(pl);},near=list=>async pl=>{const ps=pl.pos>=48?19:pl.pos>=40?24:pl.pos,i=list.find(k=>k>ps);await goTo(pl,i===undefined?list[0]:i);await land(pl,true);};
 const gain=n=>async pl=>{pl.cash+=n;ui();},lose=n=>async pl=>{await pay(pl,n,null);};
 const SEAS_LEN=3,SEAS=[
  {n:'Primavera',ic:'🌸',fx:'Stadio e fontana rendono il 50% in più.',mon:{stadio:1.5,fontana:1.5},rain:['🌸','🌷','🐝'],cards:[
@@ -1149,6 +1174,21 @@ async function drawCard(pl,k){if(k==='ch'&&Math.random()<.34){const L=SEAS[GM.se
   const d=GM.decks[k],id=d.shift(),c=CARDS[k][id];say(`${pl.name} pesca: ${c[0]}`);await showCard(k,c[0]);
   if(c[2])pl.jf.push([k,id]);else d.push(id);await c[1](pl);}
 
+/* sagra: ingresso dall'angolo della Prigione, uscita al Mercatino */
+async function sagAsk(pl){if(!GM.on||!sagOpen())return false;if(pl.noSag){pl.noSag=false;say(`🎪 ${pl.name} è già stato alla sagra al giro scorso: questa volta resta sulle vie.`);return false;}if(pl.cash<SAG_FEE)return false;
+  let yes;if(GM.fast)yes=pl.cash>300&&Math.random()<.5;else yes=await new Promise(res=>{modal(`<h2>🎪 La sagra è aperta!</h2><p>Puoi entrare nella <b>via delle sagre</b>: 5 caselle di giochi e premi, poi esci al Mercatino. Così salti le vie di questo lato. Ingresso: <b>${EUR(SAG_FEE)}</b> alla banca. Non puoi entrarci due giri di fila.</p><div class="ctrl"><button class="big act" id="sIn">🎪 Entro alla sagra</button><button class="big" id="mX">Resto sulle vie</button></div>`);
+    $('sIn').onclick=()=>{modal('');res(true);};$('mX').onclick=()=>{modal('');res(false);};});
+  if(!yes)return false;pl.noSag=true;say(`🎪 ${pl.name} entra alla sagra e paga ${EUR(SAG_FEE)} di ingresso.`);const ok=await pay(pl,SAG_FEE,null);return ok&&!pl.out;}
+async function sagLand(pl,k){
+  if(k==='sgt'){if(Math.random()<.5){pl.cash+=60;say(`🎯 ${pl.name} fa centro al tiro a segno e vince ${EUR(60)}!`);ui();}else{say(`🎯 ${pl.name} manca il bersaglio al tiro a segno e perde ${EUR(30)}.`);await pay(pl,30,null);}}
+  else if(k==='sgo'){say(`🍷 ${pl.name} offre da bere all'osteria: ${EUR(15)} a ogni giocatore.`);for(const o of alive())if(o!==pl&&!pl.out)await pay(pl,15,o);}
+  else if(k==='sgl'){if(pl.cash<20){say(`${pl.name} non ha ${EUR(20)} per la lotteria.`);return;}
+    let yes;if(GM.fast)yes=true;else yes=await new Promise(res=>{modal(`<h2>🎟️ Lotteria della sagra</h2><p>Un biglietto costa <b>${EUR(20)}</b>. Primo premio <b>${EUR(500)}</b> (un biglietto su dodici). Premio di consolazione ${EUR(60)} (tre su dodici).</p><div class="ctrl"><button class="big pri" id="lBuy">🎟️ Compro il biglietto</button><button class="big" id="mX">No, grazie</button></div>`);$('lBuy').onclick=()=>{modal('');res(true);};$('mX').onclick=()=>{modal('');res(false);};});
+    if(!yes||pl.cash<20){say(`${pl.name} non compra il biglietto della lotteria.`);return;}const r=Math.random(),w=r<1/12?500:r<4/12?60:0;pl.cash+=w-20;
+    say(w?`🎟️ ${pl.name} vince alla lotteria ${EUR(w)}${w>100?': è il primo premio!':'.'}`:`🎟️ ${pl.name} compra un biglietto della lotteria per ${EUR(20)}, ma non vince niente.`);ui();}
+  else if(k==='sgb'){say(`🎶 Ballo in piazza: ogni giocatore dà ${EUR(15)} a ${pl.name}.`);for(const o of alive())if(o!==pl)await pay(o,15,pl);}
+  else if(k==='sgp'){pl.items=pl.items||[];if(pl.items.length<MKT_MAX){const it=pickItem();pl.items.push([it[0],it[1],it[2],it[3]]);say(`🎁 ${pl.name} vince alla pesca di beneficenza: ${it[1]} ${it[0]} (${RAR[it[3]]}).`);}else{pl.cash+=40;say(`🎁 ${pl.name} vince alla pesca di beneficenza ${EUR(40)}.`);}ui();}}
+
 /* dadi animati */
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 function dieFace(el,n){el.innerHTML=[0,1,2,3,4,5,6,7,8].map(k=>`<i class="${PIPS[n].includes(k)?'p':''}"></i>`).join('');}
@@ -1171,6 +1211,7 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
   else if(i===20)await market(pl);
   else if(t.t==='wheel')await wheel(pl);
   else if(t.t==='gift'){pl.cash+=30;say(`${pl.name} attraversa il Ponte sul Piave e ritira ${EUR(30)}.`);ui();}
+  else if(t.t.startsWith('sg'))await sagLand(pl,t.t);
   else if(t.t==='rest')say(`${pl.name} si riposa al parco.`);
   else if(t.t==='pawn'){if(pl.items&&pl.items.length){const tot=Math.round(pl.items.reduce((a,x)=>a+x[2],0)*1.5);pl.cash+=tot;say(`💎 ${pl.name} vende al Banco dei pegni: ${pl.items.map(x=>x[1]+' '+x[0]).join(', ')} per ${EUR(tot)} (+50%).`);pl.items=[];ui();}else say(`${pl.name} è al Banco dei pegni, ma non ha oggetti.`);}}
 /* voli: il biglietto si compra capitando sull'aeroporto, se ne tiene uno solo, vale per il giro dell'acquisto e per quello dopo */
@@ -1233,7 +1274,7 @@ async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&
   if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}const nx=(again&&!pl.jail)?'roll':'end';GM.after=nx;if(GM.phase!=='auction'){GM.phase=nx;if(nx==='roll')say(`Doppio: ${pl.name} tira ancora.`);}}
   ui();}
 function endTurn(){if(GM.phase!=='end'||GM.busy)return;GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
-  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx}`);}
+  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx} La sagra riapre.`);}else if(GM.sT===SAG_ON*alive().length)say(`🎪 La sagra chiude: riapre alla prossima stagione.`);
   GM.phase=pl.jail?'jail':'roll';say(`Tocca a ${pl.name}.`);ui();}
 function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.cash-=BAIL;pl.jail=0;GM.phase='roll';say(`${pl.name} paga ${EUR(BAIL)} ed esce di prigione.`);ui();}
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
@@ -1278,7 +1319,7 @@ function propsModal(k){const p=GM.players[k];if(!p)return;GM.propsOpen=k;const m
   const sets=G.map((_,g)=>g).filter(g=>hasSet(p,g)),mrow=sets.map(g=>`<div class="pm"><i style="background:${G[g]}"></i><b>Serie ${GN[g]}</b><small>${mgrOn(g)?'👔 manager: affitti +20%':'senza manager'}</small><span class="sp"></span>${me?`<button data-a="g" data-i="${g}" ${!mgrOn(g)&&p.cash<MGR_PAY?'disabled':''}>${mgrOn(g)?'Licenzia':'👔 Assumi · '+EUR(MGR_PAY)}</button>`:''}</div>`).join('');
   const rows=ids.map(i=>{const t=T[i],s=st[i],lv=s?s.lv:0,stt=(GM.mort[i]?'ipotecata':(t.t==='prop'?(lv===5?'🏨 albergo':lv?'🏠'.repeat(lv):(hasSet(p,t.g)?'serie completa':'')):''))+(wrkOn(i)?' 👷':'');
     const rent=GM.mort[i]?'niente affitto':(t.t==='util'?'affitto × dadi':t.t==='air'?'incassi i biglietti':'affitto '+EUR(rentOf(i,7,false)));
-    return `<div class="pm"><i style="background:${t.t==='prop'?G[t.g]:'#8892b8'}"></i><a data-i="${i}" class="pmn" style="cursor:pointer">${t.n}</a><small>${stt}</small><span class="sp"></span><small>${rent}</small>${me?`${s?`<button data-a="b" data-i="${i}" title="Costruisci" ${whyNoBuild(p,i)?'disabled':''}>+🏠</button><button data-a="s" data-i="${i}" title="Vendi una casa" ${whyNoSell(p,i)?'disabled':''}>−🏠</button>`:''}${t.t==='sta'||t.t==='util'?`<button data-a="w" data-i="${i}" title="Operai: affitto +50%, ${EUR(WRK_PAY)} subito e a ogni giro" ${!wrkOn(i)&&p.cash<WRK_PAY?'disabled':''}>${wrkOn(i)?'−👷':'+👷'}</button>`:''}<button data-a="m" data-i="${i}" ${GM.mort[i]?(p.cash<Math.ceil(t.p/2*1.1)?'disabled':''):(whyNoMort(p,i)?'disabled':'')}>${GM.mort[i]?'Riscatta':'Ipoteca'}</button>`:''}</div>`;}).join('');
+    return `<div class="pm"><i style="background:${t.t==='prop'?G[t.g]:'#8892b8'}"></i><a data-i="${i}" class="pmn" style="cursor:pointer">${t.n}</a><small>${stt}</small><span class="sp"></span><small>${rent}</small>${me?`${s?`<button data-a="b" data-i="${i}" title="${whyNoBuild(p,i)||'Costruisci'}" ${whyNoBuild(p,i)?'disabled':''}>+🏠</button><button data-a="s" data-i="${i}" title="Vendi una casa" ${whyNoSell(p,i)?'disabled':''}>−🏠</button>`:''}${t.t==='sta'||t.t==='util'?`<button data-a="w" data-i="${i}" title="Operai: affitto +50%, ${EUR(WRK_PAY)} subito e a ogni giro" ${!wrkOn(i)&&p.cash<WRK_PAY?'disabled':''}>${wrkOn(i)?'−👷':'+👷'}</button>`:''}<button data-a="m" data-i="${i}" ${GM.mort[i]?(p.cash<Math.ceil(t.p/2*1.1)?'disabled':''):(whyNoMort(p,i)?'disabled':'')}>${GM.mort[i]?'Riscatta':'Ipoteca'}</button>`:''}</div>${me&&s&&lv<5&&hasSet(p,t.g)&&whyNoBuild(p,i)?`<div style="color:#ffb86b;font-size:12.5px;font-weight:700;margin:-4px 0 2px 26px">⚠️ ${whyNoBuild(p,i)}</div>`:''}`;}).join('');
   modal(`<h2 id="pm"></h2><p>Soldi: <b>${EUR(p.cash)}</b> · Valore totale: <b>${EUR(worth(p))}</b>${p.jf.length?' · 🎟️ carta Esci di prigione':''}${p.tk!=null?' · 🎫 biglietto aereo':''}</p>${p.items&&p.items.length?`<p>🧺 Oggetti del mercatino: ${p.items.map(x=>x[1]+' '+esc(x[0])+' <small style="color:'+RARC[x[3]]+'">('+RAR[x[3]]+')</small>').join(', ')}. Si vendono alla banca alla Partenza.</p>`:''}${me&&GM.debt&&GM.debt.pl===p?`<div class="ctrl" style="align-items:center"><b style="color:#ffb3a8">Devi pagare ${EUR(GM.debt.amt)}.</b><button class="big pri" id="pPay" ${p.cash<GM.debt.amt?'disabled':''}>Paga adesso</button></div>`:''}${me?'<p>Puoi costruire su ogni via di una serie completa. Clicca il nome di una via per vederla e decorarla.</p>':''}${mrow?`<div class="lab">Personale</div>${me?`<p>Il manager alza del 20% gli affitti di una serie completa: ${EUR(MGR_PAY)} subito e a ogni passaggio dalla Partenza. Gli operai (+👷) alzano del 50% l’affitto di stazioni e società: ${EUR(WRK_PAY)}.</p>`:''}${mrow}<div class="lab">Proprietà</div>`:''}${rows||'<p>Nessuna proprietà.</p>'}<button class="big" id="mX">Chiudi</button>`);
   $('pm').textContent='Proprietà di '+p.name;$('mX').onclick=()=>{GM.propsOpen=null;modal('');};if($('pPay'))$('pPay').onclick=()=>{if(!GM.debt||GM.debt.pl!==p||p.cash<GM.debt.amt||!GM.debtRes)return;GM.propsOpen=null;modal('');GM.debtRes(true);};
   $('modal').querySelectorAll('.pmn').forEach(e=>e.onclick=()=>{GM.propsOpen=null;modal('');select(+e.dataset.i);});
@@ -1363,6 +1404,7 @@ function rulesModal(){const R=[
  ['🛣️ Strada interna',`È la strada che taglia in mezzo al tabellone. <b>Si entra solo passando dalla Stazione dei treni</b> (in basso al centro): il gioco ti chiede se vuoi prenderla. Ha 8 caselle e ti fa uscire alle Scale mobili di Lambioi, dall’altra parte: è una scorciatoia, salti metà giro. <b>Non puoi prenderla due giri di fila</b>: dopo averla usata, al passaggio dopo resti sul giro esterno.`],
  ['🚧 Casello',`È la prima casella della strada interna. Chi entra nella strada paga <b>${EUR(TOLL)}</b> di pedaggio. Chi compra il Casello (${EUR(T[40].p)}) incassa tutti i pedaggi degli altri. Lui paga solo la metà, ${EUR(TOLL/2)}, alla banca. Finché il Casello è libero, il pedaggio va alla banca.`],
  ['🎡 Le altre caselle interne',`<b>Ruota della fortuna</b>: vinci o perdi soldi, o vinci un oggetto. <b>Parco</b>: non succede niente. <b>Ponte sul Piave</b>: ritiri ${EUR(30)}. <b>Autovelox</b>: paghi ${EUR(T[45].p)}. <b>Belvedere</b>: peschi un Imprevisto. <b>Banco dei pegni</b>: vendi subito i tuoi oggetti al 50% in più.`],
+ ['🎪 Via delle sagre',`È la via con le bancarelle sul lato sinistro. <b>Si entra dall’angolo della Prigione</b> e si esce al Mercatino: 5 caselle al posto delle 9 vie di quel lato. È aperta solo nei primi due giri di turni di ogni stagione: quando è chiusa le caselle sono grigie e ci sono le sbarre. L’ingresso costa ${EUR(SAG_FEE)}. Non puoi entrarci due giri di fila. Dentro: <b>tiro a segno</b> (vinci ${EUR(60)} o perdi ${EUR(30)}), <b>osteria</b> (paghi ${EUR(15)} a ogni giocatore), <b>lotteria</b> (biglietto ${EUR(20)}, primo premio ${EUR(500)}), <b>ballo in piazza</b> (ogni giocatore ti dà ${EUR(15)}), <b>pesca di beneficenza</b> (un oggetto gratis).`],
  ['✈️ Aeroporto e voli',`Se capiti sull’Aeroporto puoi comprare un <b>biglietto</b> a ${EUR(AIRTK)}. I soldi vanno al proprietario dell’Aeroporto (lui lo paga ${EUR(AIRTK/5)}). Ne tieni uno solo. All’inizio di un tuo turno puoi usarlo <b>al posto dei dadi</b>: voli su una stazione, su un angolo o su una tua proprietà. Volando alla Partenza non prendi lo stipendio. Il biglietto scade la seconda volta che passi dalla Partenza. Non si usa dalla prigione.`],
  ['🧺 Mercatino',`Nell’angolo in alto a sinistra. Paghi ${EUR(MKT)} e scegli un oggetto coperto: può valere poco o tantissimo. Lo scopri quando lo vendi alla banca, passando dalla Partenza. Massimo ${MKT_MAX} oggetti.`],
  ['🏗️ Opere del centro',`Quando hai almeno <b>${EUR(RICH)}</b> in contanti compare il pulsante per costruire una grande opera (stadio, castello, ruota…). Ti rende l’8% del suo costo a ogni passaggio dalla Partenza.`],
@@ -1376,7 +1418,7 @@ function rulesModal(){const R=[
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
   $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}${p.tk!=null?' 🎫':''}${p.items&&p.items.length?' 🧺'+p.items.length:''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
-  fxCash();renderHand();seasChip();
+  fxCash();renderHand();seasChip();sagSync();
   const pl=curP(),t=T[pl.pos];
   const gb=$('gbar');gb.innerHTML='';gb.style.display='';const row=document.createElement('div');row.className='btns';
   const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;row.appendChild(b);return b;};
@@ -1446,6 +1488,8 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   else if(m.startsWith('🧺'))fxBanner('🧺 MERCATINO',nm,'#ffd23d',1);
   else if(m.startsWith('🛣️'))fxBanner('🛣️ STRADA INTERNA',nm,'#c9b8ff',1);
   else if(m.startsWith('🎡'))fxBanner('🎡 RUOTA DELLA FORTUNA',nm,'#ffd23d',1);
+  else if(m.startsWith('🎟️')&&m.includes('primo premio')){fxBanner('🎟️ PRIMO PREMIO!',nm,'#ffd23d');fxRain(['🎟️','💶','🎉'],40);}
+  else if(/^(🎪|🎯|🍷|🎟️|🎶|🎁)/.test(m))fxBanner('🎪 SAGRA',nm,'#ffd23d',1);
   else if(m.startsWith('🧾'))fxBanner('🧾 GIORNO DI PAGA',nm.replace('Giorno di paga di ',''),'#7dff9b',1);
   else if(m.startsWith('👔'))fxBanner('👔 MANAGER ASSUNTO',nm,'#ffd23d',1);
   else if(m.startsWith('👷'))fxBanner('👷 OPERAI AL LAVORO',nm,'#ffd23d',1);
@@ -1524,7 +1568,7 @@ function renderHand(){const h=$('hand'),p=GM.on?(NET.on?GM.players[mySeat()]:cur
   $('handS').onclick=()=>{HSORT={colore:'valore',valore:'nome',nome:'colore'}[HSORT]||'colore';try{localStorage.setItem('rdb_sort',HSORT);}catch(e){}renderHand();};
   h.querySelectorAll('.hc[data-i]').forEach(e=>e.onclick=()=>select(+e.dataset.i));const tc=h.querySelector('.hc.tk');if(tc)tc.onclick=flyModal;}
 function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
-  else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾'))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
+  else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾')||(/^(🎯|🎟️|🎁)/.test(m)&&m.includes(' vince ')))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
 /* ================= ONLINE ================= */
@@ -1570,7 +1614,7 @@ function claimModal(){const a=GM.players.map((p,k)=>[p,k]).filter(x=>!x[0].out);
   $('modal').querySelectorAll('.cl').forEach(e=>{e.textContent='Sono '+GM.players[e.dataset.k].name;e.onclick=()=>{GM.players[e.dataset.k].uid=NET.uid;modal('');NET.force=true;ui();};});$('mX').onclick=()=>{NET.spect=true;modal('');};}
 function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(GM.owner[i]);const S={};for(const i in st)S[i]=st[i];
   return {started:true,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
-    players:GM.players.map(p=>({items:p.items||[],uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out,noIn:!!p.noIn,laps:p.laps||0,tk:p.tk==null?null:p.tk})),
+    players:GM.players.map(p=>({items:p.items||[],uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out,noIn:!!p.noIn,noSag:!!p.noSag,laps:p.laps||0,tk:p.tk==null?null:p.tk})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
     auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,season:GM.season||0,sT:GM.sT||0,fly:GM.fly||null,mgr:GM.mgr,wrk:GM.wrk,
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
@@ -1585,7 +1629,7 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     if(!GM.on||GM.players.length!==s.players.length){GM.players.forEach(p=>scene.remove(p.mesh));
       GM.players=s.players.map(c=>{const col=/^#[0-9a-f]{6}$/i.test(c.color)?c.color:PCOL[0],p={uid:c.uid,name:String(c.name).slice(0,14),color:col,shape:c.shape,cash:c.cash,pos:c.pos,jail:c.jail,jf:c.jf||[],out:!!c.out,mesh:makeToken(c.shape,col)};if(!p.out)scene.add(p.mesh);return p;});
       GM.on=true;demo.mesh.visible=false;GM.owner={};GM.mort={};GM.log=[];GM.players.forEach(p=>p.mesh.position.copy(slot(p,p.pos)));if($('modal').classList.contains('show'))modal('');}
-    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.items=Array.isArray(c.items)?c.items.filter(x=>Array.isArray(x)&&x.length===4).slice(0,MKT_MAX).map(x=>[String(x[0]).slice(0,40),String(x[1]).slice(0,4),+x[2]||0,Math.max(0,Math.min(3,x[3]|0))]):[];p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.laps=c.laps|0;p.noIn=!!c.noIn;p.tk=Number.isInteger(c.tk)?c.tk:null;p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
+    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.items=Array.isArray(c.items)?c.items.filter(x=>Array.isArray(x)&&x.length===4).slice(0,MKT_MAX).map(x=>[String(x[0]).slice(0,40),String(x[1]).slice(0,4),+x[2]||0,Math.max(0,Math.min(3,x[3]|0))]):[];p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.laps=c.laps|0;p.noIn=!!c.noIn;p.noSag=!!c.noSag;p.tk=Number.isInteger(c.tk)?c.tk:null;p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
     {const f=s.fly&&Number.isInteger(s.fly.n)&&GM.players[s.fly.k]?{n:s.fly.n,k:s.fly.k|0,to:s.fly.to|0}:null;if(f&&f.n!==(GM.flyN||0)){GM.flyN=f.n;if(!first&&T[f.to])GM.players[f.k].flyTo=f.to;}GM.fly=f;}
     GM.cur=s.cur;GM.phase=s.phase;GM.busy=!!s.busy;GM.dbl=s.dbl||0;GM.again=!!s.again;GM.decks=s.decks||GM.decks;
     if(s.dice&&(s.roll||0)!==(GM.roll||0)){const d=$('dice');d.style.display='';d.textContent=`🎲 ${s.dice[0]} + ${s.dice[1]} = ${s.dice[0]+s.dice[1]}`;if(!first)rollDiceAnim(s.dice[0],s.dice[1]);}GM.dice=s.dice||[0,0];GM.roll=s.roll||0;
@@ -1649,13 +1693,14 @@ function tileHelp(i){const t=T[i],o=GM.owner[i],own=o?` Di ${o.name}${GM.mort[i]
   if(t.t==='cc')return 'Peschi una carta della Cassa comune.';
   if(t.t==='ch')return 'Peschi una carta Imprevisto.';
   if(i===0)return `Ogni volta che passi di qui ritiri ${EUR(SAL)} e vendi gli oggetti del mercatino.`;
-  if(i===10)return 'Se ci capiti sei solo di passaggio. Qui finisce chi va in prigione.';
+  if(i===10)return 'Se ci capiti sei solo di passaggio. Qui finisce chi va in prigione. Da qui si entra nella via delle sagre, quando è aperta.';
   if(i===20)return `Mercatino: per ${EUR(MKT)} scegli un oggetto coperto. Lo vendi alla Partenza.`;
   if(i===30)return 'Vai dritto in prigione, senza passare dalla Partenza.';
   if(t.t==='toll')return `Prima casella della strada interna. Chi entra nella strada paga ${EUR(TOLL)} al proprietario. Prezzo ${EUR(t.p)}.`+own;
   if(t.t==='wheel')return 'Giri la ruota: puoi vincere o perdere soldi, o vincere un oggetto.';
   if(t.t==='air')return `Qui compri il biglietto aereo (${EUR(AIRTK)}). Lo usi dopo, al posto dei dadi. Prezzo dell’aeroporto ${EUR(t.p)}.`+own;
   if(t.t==='rest')return 'Ti riposi: non succede niente.';
+  if(t.t.startsWith('sg'))return ({sgt:`Tiro a segno: una volta su due vinci ${EUR(60)}, altrimenti perdi ${EUR(30)}.`,sgo:`Osteria: offri da bere, ${EUR(15)} a ogni giocatore.`,sgl:`Lotteria: il biglietto costa ${EUR(20)}. Primo premio ${EUR(500)}.`,sgb:`Ballo in piazza: ogni giocatore ti dà ${EUR(15)}.`,sgp:'Pesca di beneficenza: vinci un oggetto del mercatino, gratis.'}[t.t])+' Via delle sagre: '+(sagOpen()?'aperta.':'chiusa.');
   if(t.t==='gift')return `Ritiri ${EUR(30)}.`;
   if(t.t==='pawn')return 'Vendi subito i tuoi oggetti del mercatino al 50% in più.';
   return t.sub||'';}
@@ -1702,7 +1747,7 @@ function select(i){
     const txt={sta:['Stazione',[['Con 1 stazione',EUR(25)],['Con 2 stazioni',EUR(50)],['Con 3 stazioni',EUR(100)],['Con 4 stazioni',EUR(200)],['Prezzo',EUR(200)]]],
       util:['Società',[['Con 1 società','4.000 € × i dadi'],['Con 2 società','10.000 € × i dadi'],['Prezzo',EUR(150)]]],
       tax:['Tassa',[['Paghi alla banca',EUR(t.p||0)]]],ch:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],cc:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],
-      corner:['Angolo',[[t.sub||'','']]],toll:['Strada a pedaggio',[['Pedaggio per entrare',EUR(TOLL)],['Il proprietario paga',EUR(TOLL/2)],['Prezzo',EUR(t.p||0)]]],air:['Aeroporto',[['Biglietto aereo',EUR(AIRTK)],['Va al proprietario','tutto'],['Il proprietario paga',EUR(AIRTK/5)],['Prezzo',EUR(t.p||0)]]]}[t.t]||['Strada interna',[[t.sub||'','']]];
+      corner:['Angolo',[[t.sub||'','']]],toll:['Strada a pedaggio',[['Pedaggio per entrare',EUR(TOLL)],['Il proprietario paga',EUR(TOLL/2)],['Prezzo',EUR(t.p||0)]]],air:['Aeroporto',[['Biglietto aereo',EUR(AIRTK)],['Va al proprietario','tutto'],['Il proprietario paga',EUR(AIRTK/5)],['Prezzo',EUR(t.p||0)]]]}[t.t]||(t.t.startsWith('sg')?['Via delle sagre',[[t.sub||'',''],['Oggi',sagOpen()?'aperta':'chiusa']]]:['Strada interna',[[t.sub||'','']]]);
     h=`<div class="deedTop"><small>${txt[0]}</small><div>${t.ic} ${t.n}</div></div><div class="rows">`+txt[1].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')+own+`</div>`;
   }
   deed.innerHTML=h;
@@ -1767,7 +1812,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}if(document.hidden)flyTick(now);},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={Z,K,CEN,tileHelp,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
+window.__dbg={Z,K,CEN,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
 </script>
 </body>
 </html>
