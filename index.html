@@ -158,7 +158,7 @@ details .in{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
 <div class="app">
   <div id="wrap">
     <div class="hud"><div id="players"></div><div class="chip" id="dice" style="display:none"></div><div class="chip" id="seas" style="display:none;cursor:help"></div><span id="where" style="display:none"></span></div>
-    <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bM" title="Musica">🎵</button><button id="bP" class="on" title="Mostra o nascondi il pannello di destra">📝</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
+    <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bM" title="Musica">🎵</button><button id="bR" title="Regole in breve">📖</button><button id="bP" class="on" title="Mostra o nascondi il pannello di destra">📝</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
     <div id="fx"></div>
     <div id="diceBox"><div class="die" id="d1"></div><div class="die" id="d2"></div></div>
     <div id="dock"><div id="log"></div><div id="gbar"></div></div>
@@ -441,7 +441,7 @@ function buildBoard(){
   const riv=new THREE.Mesh(new THREE.PlaneGeometry(18.6,1.1),wtr);riv.rotation.x=-Math.PI/2;riv.position.set(1.5,.012,-1);scene.add(riv);
   [-1,1].forEach(k=>{const b=new THREE.Mesh(new THREE.PlaneGeometry(18.6,.22),MT('pave','#cdbf9f'));b.rotation.x=-Math.PI/2;b.position.set(1.5,.011,-1+k*.62);b.receiveShadow=true;scene.add(b);});
   {const rt=rnd(7);let n=0,guard=600;while(n<44&&guard--){const tx=-10.2+rt()*20.4,tz=-.2+rt()*10.4;
-    if(ROADPTS.some(([x,z])=>Math.hypot(tx-x,tz-z)<1.5)||(Math.abs(tx-4.3)<4.1&&Math.abs(tz-6.9)<.9)||PLOTS.some(([px,pz])=>Math.abs(tx-px)<1.9&&Math.abs(tz-pz)<1.8)||(Math.abs(tx)<4.9&&Math.abs(tz-6.1)<1)||(Math.abs(Math.abs(tx)-5.4)<1.9&&Math.abs(tz-9.5)<1.4)||tz<.1)continue;scene.add(tree(tx,tz,.9+(n%3)*.25,n%3===0?1:0));n++;}}
+    if(ROADPTS.some(([x,z])=>Math.hypot(tx-x,tz-z)<1.5)||(Math.abs(tx-4.3)<4.1&&Math.abs(tz-6.9)<.9)||PLOTS.some(([px,pz])=>Math.abs(tx-px)<1.9&&Math.abs(tz-pz)<1.8)||(Math.abs(tx)<4.9&&Math.abs(tz-6.1)<1)||(Math.abs(Math.abs(tx)-5.4)<1.9&&Math.abs(tz-9.5)<1.4)||tz<.1||(Math.abs(tx+6.95)<1.2&&tz<8.6)||(Math.abs(tx+5.4)<1.5&&Math.abs(tz-4.3)<1.1))continue;scene.add(tree(tx,tz,.9+(n%3)*.25,n%3===0?1:0));n++;}}
   [['IMPREVISTI','❓','#f7941d',-5.4,.3],['CASSA COMUNE','🎁','#0072bb',5.4,-.3]].forEach(([n,ic,col,dx,rot])=>{
     const c=cv(512,320),x=c.getContext('2d');x.fillStyle=col;x.fillRect(0,0,512,320);x.strokeStyle='#fff';x.lineWidth=14;x.strokeRect(18,18,476,284);
     x.textAlign='center';x.textBaseline='middle';x.font='120px serif';x.fillText(ic,256,125);x.font='900 50px Outfit,sans-serif';x.fillStyle='#fff';x.fillText(n,256,245);
@@ -552,10 +552,22 @@ function buildInner(){const stn=MT('pave','#a8a29a'),rm=M('#8f8a84',{roughness:.
       if(a===45){ribbon([V(A.x,A.z),V(x,z)],.5);}break;}}});
   scene.add(tbox(1.1,.05,.5,stn,0,.03,-11.9));
   [40,42].forEach(i=>updateOwner(i));
-  /* aeroporto: pista e hangar accanto alla casella */
-  {const g=tileG[42];g.add(box(3.4,.03,.7,'#4a4d55',-2.5,.02,.4,{roughness:.95}));for(let k=0;k<6;k++)g.add(box(.3,.035,.06,'#f2f2f2',-3.9+k*.56,.022,.4));
-    const hg=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,1,18,1,false,0,Math.PI),M('#c9ced6',{metalness:.6,roughness:.4,side:THREE.DoubleSide}));hg.rotation.z=Math.PI/2;hg.rotation.y=Math.PI/2;hg.position.set(-1.9,0,-.75);hg.castShadow=true;g.add(hg);
-    const pl=new THREE.Group();pl.add(box(.7,.12,.12,'#ffffff',0,.18,0,{metalness:.3,roughness:.4}),box(.16,.03,.9,'#e23b3b',.05,.2,0),box(.1,.03,.34,'#e23b3b',-.3,.2,0),box(.04,.16,.03,'#e23b3b',-.32,.27,0),box(.03,.2,.03,'#20232a',.37,.18,0));pl.position.set(-2.6,0,.4);g.add(pl);g.userData.plane=pl;}
+  /* aeroporto: pista lunga a ovest della casella, terminal, torre di controllo e aereo in attesa */
+  {const g=tileG[42],RX=-2.05,RZ=-1.7,RL=7.4,gl=M(GLASS.color,GLASS),wh={roughness:.5},cyl=(rt,rb,h,mat,x,y,z,seg)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||18),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;return m;};
+    g.add(box(1.1,.03,RL,'#3f4249',RX,.02,RZ,{roughness:.95}),ns(box(.035,.034,RL-.3,'#f2f2f2',RX-.47,.021,RZ)),ns(box(.035,.034,RL-.3,'#f2f2f2',RX+.47,.021,RZ)));
+    for(let k=0;k<9;k++)g.add(ns(box(.07,.035,.42,'#f2f2f2',RX,.022,RZ-RL/2+.9+k*.7)));
+    [-1,1].forEach(e=>{for(let k=0;k<4;k++)g.add(ns(box(.1,.035,.5,'#f2f2f2',RX-.3+k*.2,.022,RZ+e*(RL/2-.45))));});
+    for(let k=0;k<8;k++)[-1,1].forEach(q=>{const l=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M('#ffd66b',{emissive:'#ffd66b',emissiveIntensity:1.4}));l.position.set(RX+q*.62,.05,RZ-RL/2+.5+k*.92);g.add(l);});
+    g.add(box(.5,.03,.5,'#3f4249',RX+.8,.02,-1.7,{roughness:.95}));
+    /* terminal */
+    g.add(box(1.75,.62,.8,'#f4f1ea',-.5,.31,-1.72,wh),tbox(1.6,.36,.03,gl,-.5,.34,-1.31),box(1.85,.07,.9,'#2f7ff0',-.5,.655,-1.72,wh),box(.8,.34,.6,'#f4f1ea',-.5,.86,-1.78,wh),tbox(.7,.2,.03,gl,-.5,.87,-1.47),box(.9,.06,.7,'#2f7ff0',-.5,1.06,-1.78,wh));
+    const hg=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.8,18,1,false,0,Math.PI),M('#c9ced6',{metalness:.6,roughness:.4,side:THREE.DoubleSide}));hg.rotation.z=Math.PI/2;hg.position.set(.82,0,-1.72);hg.castShadow=true;g.add(hg);
+    /* torre di controllo */
+    g.add(cyl(.13,.17,1.75,M('#eef1f6',wh),-1.02,.875,-.92),cyl(.34,.24,.3,gl,-1.02,1.9,-.92,20),cyl(.37,.37,.05,M('#2f7ff0',wh),-1.02,2.08,-.92,20),cyl(.012,.012,.4,M('#c9ced6',{metalness:.8}),-1.02,2.3,-.92,6));
+    {const bc=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),M('#ff3b30',{emissive:'#ff3b30',emissiveIntensity:1.5}));bc.position.set(-1.02,2.52,-.92);const h=halo('#ff5a4d',1.2);h.position.set(-1.02,2.52,-.92);g.add(bc,h);}
+    /* manica a vento */
+    g.add(box(.025,.7,.025,'#dfe3ee',RX+.75,.35,1.6,{metalness:.8,roughness:.3}));{const ws=new THREE.Mesh(new THREE.ConeGeometry(.07,.34,10,1,true),M('#f7941d',{side:THREE.DoubleSide}));ws.rotation.z=Math.PI/2;ws.position.set(RX+.93,.68,1.6);g.add(ws);}
+    const pl=new THREE.Group();pl.add(box(.7,.12,.12,'#ffffff',0,.18,0,{metalness:.3,roughness:.4}),box(.16,.03,.9,'#e23b3b',.05,.2,0),box(.1,.03,.34,'#e23b3b',-.3,.2,0),box(.04,.16,.03,'#e23b3b',-.32,.27,0),box(.03,.2,.03,'#20232a',.37,.18,0));pl.scale.setScalar(1.8);pl.rotation.y=Math.PI/2;pl.position.set(RX,-.1,.5);g.add(pl);g.userData.plane=pl;}
 }
 function skyTick(now){seasonTick(now);clouds.forEach(c=>{const a=c.userData.a+now*c.userData.v*4e-6;c.position.x=Math.cos(a)*c.userData.R;c.position.z=Math.sin(a)*c.userData.R;});
   if(balloon){const a=now*2.2e-5;balloon.position.set(Math.cos(a)*31,10+Math.sin(now/4000)*.6,Math.sin(a)*31);}}
@@ -1100,9 +1112,9 @@ function jetMesh(col){if(!FLY.jet){FLY.jet=new THREE.Group();FLY.jet.visible=fal
 function flyAnim(pl,to){if(GM.fast){pl.vpos=to;pl.mesh.position.copy(slot(pl,to));return Promise.resolve();}
   if(FLY.on)flyEnd();
   return new Promise(res=>{const A=tileG[42].position,D=slot(pl,to),V=(x,y,z)=>new THREE.Vector3(x,y,z),j=jetMesh(pl.color);
-    const p1=V(A.x-.9,.3,A.z+.4),p2=V(A.x+2.6,2.1,A.z+.4),mid=V((p2.x+D.x)*.3,8.2,Math.max(-9,(p2.z+D.z)/2-4)),ap=D.clone().sub(mid).setY(0);if(ap.lengthSq()<.01)ap.set(0,0,1);ap.normalize();
+    const rx=A.x-2.05,p1=V(rx,.42,A.z-3.2),p2=V(rx+.3,3,A.z-6.6),mid=V((p2.x+D.x)*.3,8.2,Math.max(-9,Math.min(-3.5,(p2.z+D.z)/2-3))),ap=D.clone().sub(mid).setY(0);if(ap.lengthSq()<.01)ap.set(0,0,1);ap.normalize();
     const p4=V(D.x-ap.x*4.2,2.7,D.z-ap.z*4.2),p5=V(D.x-ap.x*1.4,.9,D.z-ap.z*1.4),p6=V(D.x,.32,D.z);
-    const curve=new THREE.CatmullRomCurve3([V(A.x-4.1,.3,A.z+.4),V(A.x-2.5,.3,A.z+.4),p1,p2,mid,p4,p5,p6],false,'centripetal');
+    const curve=new THREE.CatmullRomCurve3([V(rx,.3,A.z+.5),V(rx,.3,A.z-1.4),p1,p2,mid,p4,p5,p6],false,'centripetal');
     pl.mesh.visible=false;const park=tileG[42].userData.plane;if(park)park.visible=false;j.position.copy(curve.getPointAt(0));j.visible=true;
     FLY.on={pl,to,curve,t0:performance.now(),dur:6200,res,lp:0,walk:pawn===pl.mesh};if(FLY.on.walk)pawn=j;SFX.fly();flyTick(performance.now());});}
 function flyEnd(){const f=FLY.on;if(!f)return;FLY.on=null;FLY.jet.visible=false;const park=tileG[42].userData.plane;if(park)park.visible=true;
@@ -1244,6 +1256,24 @@ function centroModal(){const free=!GM.on,me=free?demo:actor();if(!free&&!canAct(
       $('cGo').onclick=()=>{const m=MONS.find(x=>x[0]===type);if(!m||(m[3]||'')!==kind)return;put(plot,type);SFX.build();modal('');};}
     $('modal').querySelectorAll('.cp').forEach(e=>e.onclick=()=>{plot=+e.dataset.k;draw();});$('modal').querySelectorAll('.cm').forEach(e=>e.onclick=()=>{type=e.dataset.t;draw();});$('mX').onclick=()=>modal('');
     if(!free)$('cGo').onclick=()=>{const m=MONS.find(x=>x[0]===type);if(!m||!canAct()||me.cash<m[2]||GM.centro[plot]||(m[3]||'')!==(PLOTS[plot][2]||''))return;me.cash-=m[2];GM.centro[plot]={t:type,o:GM.players.indexOf(me)};buildCentro(plot);say(`🏗️ ${me.name} costruisce in centro: ${m[1]}!`);SFX.build();modal('');ui();};};draw();}
+
+/* regole in breve */
+function rulesModal(){const R=[
+ ['🎯 Scopo','Vince chi resta ultimo senza finire in bancarotta.'],
+ ['🎲 Il turno','Tiri i dadi e avanzi. Con un doppio tiri ancora; al terzo doppio di fila vai in prigione. Poi premi <b>Fine turno</b>.'],
+ ['🏠 Vie, stazioni e società',`Se la casella è libera puoi comprarla. Se non la compri va all’<b>asta</b>: 15 secondi, tutti offrono quanto vogliono. Se è di un altro, gli paghi l’affitto. Con tutta una serie di un colore l’affitto raddoppia e puoi costruire case e alberghi.`],
+ ['🚀 Partenza',`Ogni volta che ci passi ritiri <b>${EUR(SAL)}</b>, più la rendita delle tue opere in centro. Qui vendi anche gli oggetti del mercatino.`],
+ ['🛣️ Strada interna',`È la strada che taglia in mezzo al tabellone. <b>Si entra solo passando dalla Stazione dei treni</b> (in basso al centro): il gioco ti chiede se vuoi prenderla. Ha 8 caselle e ti fa uscire alle Scale mobili di Lambioi, dall’altra parte: è una scorciatoia, salti metà giro.`],
+ ['🚧 Casello',`È la prima casella della strada interna. Chi entra nella strada paga <b>${EUR(TOLL)}</b> di pedaggio. Chi compra il Casello (${EUR(T[40].p)}) incassa tutti i pedaggi e passa gratis. Finché è libero, il pedaggio va alla banca.`],
+ ['🎡 Le altre caselle interne',`<b>Ruota della fortuna</b>: vinci o perdi soldi, o vinci un oggetto. <b>Parco</b>: non succede niente. <b>Ponte sul Piave</b>: ritiri ${EUR(30)}. <b>Autovelox</b>: paghi ${EUR(T[45].p)}. <b>Belvedere</b>: peschi un Imprevisto. <b>Banco dei pegni</b>: vendi subito i tuoi oggetti al 50% in più.`],
+ ['✈️ Aeroporto e voli',`Se capiti sull’Aeroporto puoi comprare un <b>biglietto</b> a ${EUR(AIRTK)}. I soldi vanno al proprietario dell’Aeroporto (lui lo paga ${EUR(AIRTK/5)}). Ne tieni uno solo. All’inizio di un tuo turno puoi usarlo <b>al posto dei dadi</b>: voli su una stazione, su un angolo o su una tua proprietà. Volando alla Partenza non prendi lo stipendio. Il biglietto scade la seconda volta che passi dalla Partenza. Non si usa dalla prigione.`],
+ ['🧺 Mercatino',`Nell’angolo in alto a sinistra. Paghi ${EUR(MKT)} e scegli un oggetto coperto: può valere poco o tantissimo. Lo scopri quando lo vendi alla banca, passando dalla Partenza. Massimo ${MKT_MAX} oggetti.`],
+ ['🏗️ Opere del centro',`Quando hai almeno <b>${EUR(RICH)}</b> in contanti compare il pulsante per costruire una grande opera (stadio, castello, ruota…). Ti rende l’8% del suo costo a ogni passaggio dalla Partenza.`],
+ ['🗓️ Stagioni','Cambiano ogni 3 giri. Ogni stagione fa rendere di più alcune opere e ha i suoi imprevisti. La scritta in alto a sinistra dice quale stagione è.'],
+ ['⛓️ Prigione',`Esci con un doppio, pagando ${EUR(BAIL)}, oppure con la carta. Al terzo tentativo fallito paghi e esci.`],
+ ['💸 Se finisci i soldi','Vendi le case (a metà prezzo), ipoteca le proprietà (incassi metà prezzo, niente affitto finché non riscatti) oppure cedi proprietà a chi devi pagare. Se non basta, sei in bancarotta.'],
+ ['🤝 Scambi','Nel tuo turno puoi proporre a un altro giocatore uno scambio di proprietà e soldi. Lui accetta o rifiuta.']];
+  modal(`<h2>📖 Regole in breve</h2>${R.map(r=>`<div><b style="font-size:15.5px">${r[0]}</b><p style="margin-top:3px">${r[1]}</p></div>`).join('')}<button class="big pri" id="mX">Ho capito</button>`);$('mX').onclick=()=>modal('');}
 
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
@@ -1511,7 +1541,7 @@ function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.set((e.c
 function setMode(m){mode=m;document.getElementById('bOrbit').classList.toggle('on',m==='orbit');document.getElementById('bWalk').classList.toggle('on',m==='walk');
   document.getElementById('hint').textContent=m==='orbit'?'Trascina per girare il tabellone · rotellina per lo zoom · clicca una casella per sceglierla':'Sei dietro la pedina di turno · trascina per guardarti intorno';}
 document.getElementById('bOrbit').onclick=()=>{focus(-1);setMode('orbit');};wrap.addEventListener('dblclick',e=>{if(e.target.closest('button,#modal,#dock,#tools,#chat,#hand,.pl'))return;pick(e);focus(sel);});
-document.getElementById('bWalk').onclick=()=>setMode('walk');
+document.getElementById('bWalk').onclick=()=>setMode('walk');document.getElementById('bR').onclick=()=>{const m=$('modal');if(m.classList.contains('show')&&!m.querySelector('#mX,#mOk'))return;if(GM.on&&GM.busy&&m.classList.contains('show'))return;rulesModal();};
 document.getElementById('bNew').onclick=()=>{if(!NET.on)return startModal();modal(`<h2>Stanza online</h2><p>Sei in una stanza online. Per iniziare un'altra partita esci e creane una nuova.</p><div class="link"><input readonly value="${inviteUrl()}"></div><div class="ctrl"><button class="big act" id="mOut">Esci dalla stanza</button><button class="big" id="mX">Resta</button></div>`);$('mOut').onclick=()=>{location.href=location.pathname;};$('mX').onclick=()=>modal('');};
 let HQ=true;document.getElementById('bQ').onclick=e=>{HQ=!HQ;e.target.textContent=HQ?'HD':'SD';renderer.setPixelRatio(HQ?Math.min(devicePixelRatio,2.5):1);
   const n=HQ?4096:1024;sun.shadow.mapSize.set(n,n);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}resize();};
@@ -1611,7 +1641,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}if(document.hidden)flyTick(now);},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
+window.__dbg={routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
 </script>
 </body>
 </html>
