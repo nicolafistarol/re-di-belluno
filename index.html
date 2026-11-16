@@ -159,7 +159,7 @@ details .in{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
 <div class="app">
   <div id="wrap">
     <div class="hud"><div id="players"></div><div class="chip" id="dice" style="display:none"></div><div class="chip" id="seas" style="display:none;cursor:help"></div><span id="where" style="display:none"></span></div>
-    <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bM" title="Musica">🎵</button><button id="bR" title="Regole in breve">📖</button><button id="bP" class="on" title="Mostra o nascondi il pannello di destra">📝</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
+    <div id="tools"><button id="bOrbit" class="on" title="Vista dall'alto">🗺️</button><button id="bWalk" title="Cammina tra le vie">🚶</button><button id="bN" title="Giorno / notte">🌙</button><button id="bS" title="Suoni">🔊</button><button id="bM" title="Musica">🎵</button><button id="bG" title="Giornale di Belluno">📰</button><button id="bR" title="Regole in breve">📖</button><button id="bP" class="on" title="Mostra o nascondi il pannello di destra">📝</button><button id="bQ" title="Qualità grafica">HD</button><button id="bNew" title="Menu della partita">⚙️</button></div>
     <div id="fx"></div>
     <div id="diceBox"><div class="die" id="d1"></div><div class="die" id="d2"></div></div>
     <div id="dock"><div id="log"></div><div id="gbar"></div></div>
@@ -1014,7 +1014,7 @@ const groupIds=g=>T.map((t,i)=>t.t==='prop'&&t.g===g?i:-1).filter(i=>i>=0);
 const hasSet=(pl,g)=>groupIds(g).every(i=>GM.owner[i]===pl);
 const owned=pl=>Object.keys(GM.owner).map(Number).filter(i=>GM.owner[i]===pl);
 const $=id=>document.getElementById(id),esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function say(m){GM.log.push(m);if(!NET.applying)NET.logN++;if(GM.fast)return;sfxFor(m);$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}
+function say(m){pwSay(m);GM.log.push(m);if(!NET.applying)NET.logN++;if(GM.fast)return;sfxFor(m);$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}
 function slot(pl,i){const v=PATH[i].clone(),a=alive(),n=a.length,k=a.indexOf(pl);if(n>1&&k>=0){const an=k/n*Math.PI*2,r=LOC(i)>=0?(LOC(i)%10===0?.6:.3)*Z:.3*K;v.x+=Math.cos(an)*r;v.z+=Math.sin(an)*r;}return v;}
 function face(pl){if(pl!==curP())return;const n=nxt(pl.pos,false);dir.copy(PATH[n]).sub(PATH[pl.pos]);dir.y=0;dir.normalize();}
 function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
@@ -1022,7 +1022,7 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=PATH[pl.pos]?PATH[pl.pos].y:0;const far=a.distanceTo(b);segs.push({pl,a,b,t0:performance.now(),to,res,dur:Math.max(dur||250,far>9?far*24:0)});SFX.step();});}
 /* passaggio da una Porta dopo aver finito il giro del quartiere: stipendio, opere, paghe */
-const salVie=pl=>owned(pl).filter(i=>T[i].t==='prop'&&!GM.mort[i]).length,salOf=pl=>SAL+SALV*salVie(pl);
+const salVie=pl=>owned(pl).filter(i=>T[i].t==='prop'&&!GM.mort[i]).length,salOf=pl=>SAL+SALV*salVie(pl)+(isRe(pl)?RE_SAL:0);
 function passFx(pl,from){if(!GM.on||LOC(pl.pos)!==0||LOC(from)!==39||DIS(from)!==DIS(pl.pos))return;const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);const sal=salOf(pl);pl.cash+=sal+mo;say(`${pl.name} passa dalla ${T[pl.pos].n} e ritira ${EUR(sal+mo)}${mo?' (con le opere in centro)':''}${SALV&&sal>SAL?' ('+salVie(pl)+' vie: +'+EUR(sal-SAL)+')':''}.`);payday(pl,sal,mo,sellItems(pl));if(hasMon(pl,'ruota'))freeSpin(pl);pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}
 async function gateAsk(pl){const d=DIS(pl.pos),nd=(d+1)%NQ;if(GM.fast)return Math.random()<.3;return new Promise(res=>{modal(`<h2>🧭 Piazza del Re</h2><p>Sei alla <b>${T[pl.pos].n}</b>. Puoi entrare nel quartiere <b>${QN[d]}</b>, oppure proseguire sulla piazza verso il quartiere <b>${QN[nd]}</b>.</p><div class="ctrl"><button class="big act" id="mX">Entro: ${QN[d]}</button><button class="big" id="gGo">Proseguo verso ${QN[nd]} ➜</button></div>`);
   $('mX').onclick=()=>{modal('');res(false);};$('gGo').onclick=()=>{modal('');res(true);};});}
@@ -1070,7 +1070,8 @@ function updateOwner(i){updateSign(i);const g=ownG[i];if(!g)return;while(g.child
   if(GM.mort[i]){const d=new THREE.Mesh(new THREE.PlaneGeometry(TW,TD),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.42,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.y=.02;g.add(d);}}
 function checkThemes(){G.forEach((_,g)=>{if(grp[g].theme&&!GM.players.some(p=>!p.out&&hasSet(p,g))){grp[g].theme='';applyTheme(g);}});staffCheck();}
 function buy(pl,i){pl.cash-=T[i].p;GM.owner[i]=pl;updateOwner(i);say(`🏠 ${pl.name} compra ${T[i].n} per ${EUR(T[i].p)}.`);ui();}
-function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return 0;
+function rentOf(i,dice,mult){const r=rentBase(i,dice,mult),o=GM.owner[i];return r&&o&&GM.pw?Math.round(r*pwMul(pk(o))):r;}
+function rentBase(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return 0;
   if(t.t==='prop'){const lv=st[i].lv,b=lv?t.r[lv]:(hasSet(o,t.g)?t.r[0]*2:t.r[0])*RM;return mgrOn(t.g)?Math.round(b*1.2):b;}
   if(t.t==='toll')return TOLL;if(t.t==='air')return 0;
   if(t.t==='sta')return Math.round(25*RM*Math.pow(2,RR.filter(k=>DIS(k)===DIS(i)&&GM.owner[k]===o).length-1)*(mult?2:1)*(i===35&&GM.season===3?2:1)*(wrkOn(i)?1.5:1));
@@ -1232,7 +1233,7 @@ async function market(pl){if(pl.out)return;pl.items=pl.items||[];
 /* funzioni speciali delle opere del centro */
 const MONFX={fontana:'A ogni doppio che tiri ritiri '+EUR(30)+'.',ruota:'A ogni passaggio dalla Partenza un giro omaggio: vinci sempre qualcosa.',torre:'Vedi ogni Imprevisto prima di pescarlo e puoi lasciarlo nel mazzo.',stadio:'A ogni cambio di stagione c’è la partita: ogni altro giocatore ti paga '+EUR(30)+'.',castello:'Non paghi più tasse né autovelox.',resort:'A ogni cambio di stagione arrivano i turisti: '+EUR(50)+', in estate '+EUR(150)+'.',osserv:'Chi capita sul Belvedere ti paga '+EUR(40)+'.',seggiovia:'Chi capita sul Belvedere ti paga '+EUR(40)+'.'};
 const monOwners=t=>[...new Set(Object.values(GM.centro||{}).filter(c=>c.t===t&&GM.players[c.o]&&!GM.players[c.o].out).map(c=>GM.players[c.o]))],hasMon=(pl,t)=>monOwners(t).includes(pl);
-function seasonLotto(){if(NQ<2)return;const part=alive().filter(p=>p.cash>=LOT_T);if(part.length<2)return;part.forEach(p=>p.cash-=LOT_T);const pot=LOT_T*part.length+LOT_B,w=part[Math.floor(Math.random()*part.length)];w.cash+=pot;say(`🎰 Lotteria di stagione: ${part.length} biglietti da ${EUR(LOT_T)}, la banca aggiunge ${EUR(LOT_B)}. ${w.name} vince ${EUR(pot)}!`);}
+function seasonLotto(){if(NQ<2)return;const part=alive().filter(p=>p.cash>=LOT_T);if(part.length<2)return;part.forEach(p=>p.cash-=LOT_T);const S=GM.pw&&GM.pw.set,skim=S?200:0;if(S)S.box+=skim;const pot=LOT_T*part.length+LOT_B-skim,w=part[Math.floor(Math.random()*part.length)];w.cash+=pot;say(`🎰 Lotteria di stagione: ${part.length} biglietti da ${EUR(LOT_T)}, la banca aggiunge ${EUR(LOT_B-skim)}. ${w.name} vince ${EUR(pot)}!`);}
 function seasonEvents(){seasonLotto();monOwners('stadio').forEach(o=>{let tot=0;alive().forEach(p=>{if(p!==o){const v=Math.min(30,Math.max(0,p.cash));p.cash-=v;tot+=v;}});o.cash+=tot;say(`🏟️ Partita allo stadio di ${o.name}: gli altri pagano il biglietto, incassa ${EUR(tot)}.`);});
   monOwners('resort').forEach(o=>{const v=GM.season===1?150:50;o.cash+=v;say(`🏝️ Turisti al Grand Resort di ${o.name}: incassa ${EUR(v)}.`);});}
 function freeSpin(pl){const r=[20,40,40,80,80,150,'item'][Math.floor(Math.random()*7)];if(r==='item'&&(pl.items=pl.items||[]).length<MKT_MAX){const it=pickItem();pl.items.push([it[0],it[1],it[2],it[3]]);say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${it[1]} ${it[0]} (${RAR[it[3]]}).`);}else{const v=r==='item'?50:r;pl.cash+=v;say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${EUR(v)}.`);}}
@@ -1273,8 +1274,8 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
       if(yes&&pl.cash>=t.p){buy(pl,i);if(t.t==='air')await airDesk(pl);}else{say(`${pl.name} non compra ${t.n}.`);if(t.t==='air')await airDesk(pl);if(pl.out)return;if(GM.fast)fastAuction(i);else startAuction(i);}}
     else if(t.t==='air')await airDesk(pl);
     else if(o!==pl&&t.t==='toll')say(`${pl.name} si ferma al casello di ${o.name}.`);
-    else if(o!==pl){if(GM.mort[i])say(`${t.n} è ipotecata: niente affitto.`);else{const dc=(mult&&t.t==='util')?d6()+d6():GM.dice[0]+GM.dice[1],r=rentOf(i,dc,mult);
-      say(`💸 ${pl.name} paga ${EUR(r)} di affitto a ${o.name} per ${t.n}.`);await pay(pl,r,o);}}}
+    else if(o!==pl){if(GM.mort[i])say(`${t.n} è ipotecata: niente affitto.`);else{const dc=(mult&&t.t==='util')?d6()+d6():GM.dice[0]+GM.dice[1],r0=rentOf(i,dc,mult),r=setBoth(pl,o)?Math.round(r0/2):r0;
+      say(`💸 ${pl.name} paga ${EUR(r)} di affitto a ${o.name} per ${t.n}.`);if(await pay(pl,r,o))pwRentPaid(pl,o,r);}}}
   else if(t.t==='tax'){if(hasMon(pl,'castello'))say(`🏰 ${pl.name} ha il castello: non paga ${t.n}.`);else{say(`${pl.name} paga ${EUR(t.p)}: ${t.n}.`);await pay(pl,t.p,null);}}
   else if(t.t==='ch'||t.t==='cc'){if(i===46)await mountFee(pl);if(!pl.out)await drawCard(pl,t.t);}
   else if(t.act==='jail')await toJail(pl);
@@ -1288,7 +1289,7 @@ async function land(pl,mult){if(pl.out)return;const i=pl.pos,t=T[i];if(!GM.fast)
   else if(t.t==='rest')say(`${pl.name} si riposa al parco.`);
   else if(t.t==='pawn'){if(pl.items&&pl.items.length){const tot=Math.round(pl.items.reduce((a,x)=>a+x[2],0)*1.5);pl.cash+=tot;say(`💎 ${pl.name} vende al Banco dei pegni: ${pl.items.map(x=>x[1]+' '+x[0]).join(', ')} per ${EUR(tot)} (+50%).`);pl.items=[];ui();}else say(`${pl.name} è al Banco dei pegni, ma non ha oggetti.`);}}
 /* voli: il biglietto si compra capitando sull'aeroporto, se ne tiene uno solo, vale per il giro dell'acquisto e per quello dopo */
-const tkCan=pl=>GM.on&&GM.phase==='roll'&&!GM.busy&&!GM.dbl&&!pl.jail&&!pl.out&&pl.tk!=null;
+const tkCan=pl=>GM.on&&GM.phase==='roll'&&!GM.busy&&!GM.dbl&&!pl.jail&&!pl.out&&(pl.tk!=null||!!pl.jet);
 const flyDest=pl=>[...new Set([...Array(NQ).keys()].map(d=>RING(d,0)).concat([10,20],RR,owned(pl)))].filter(i=>i!==42&&i!==pl.pos).sort((a,b)=>a-b);
 async function airDesk(pl){if(pl.out)return;const o=GM.owner[42],own=o===pl,price=own?AIRTK/5:AIRTK,to=o&&!own&&!GM.mort[42]?o:null;
   if(pl.tk!=null){say(`${pl.name} è all'aeroporto, ma ha già un biglietto.`);return;}
@@ -1297,8 +1298,8 @@ async function airDesk(pl){if(pl.out)return;const o=GM.owner[42],own=o===pl,pric
     $('aBuy').onclick=()=>{modal('');res(true);};$('mX').onclick=()=>{modal('');res(false);};});
   if(!yes||pl.cash<price||pl.tk!=null){say(`${pl.name} non compra il biglietto aereo.`);return;}
   pl.tk=pl.laps||0;say(`🎫 ${pl.name} compra un biglietto aereo per ${EUR(price)}${to?' da '+to.name:''}.`);await pay(pl,price,to);}
-function flyModal(){const pl=curP();if(!GM.on)return;const me=NET.on?GM.players[mySeat()]:pl;if(!me||me.tk==null)return;
-  const left=(me.laps||0)===me.tk?'Vale per questo giro e per il prossimo.':'Ultimo giro: scade quando passi dalla Partenza.';
+function flyModal(){const pl=curP();if(!GM.on)return;const me=NET.on?GM.players[mySeat()]:pl;if(!me||(me.tk==null&&!me.jet))return;
+  const left=me.tk==null?'Hai il jet privato: voli quando vuoi.':(me.laps||0)===me.tk?'Vale per questo giro e per il prossimo.':'Ultimo giro: scade quando passi dalla Partenza.';
   if(me!==pl||!canAct()||!tkCan(pl)){modal(`<h2>🎫 Biglietto aereo</h2><p>${left}</p><p>Si usa all’inizio del tuo turno, al posto dei dadi. Non si usa dalla prigione e nemmeno dopo un doppio.</p><button class="big" id="mX">Chiudi</button>`);$('mX').onclick=()=>modal('');return;}
   const note=i=>{const t=T[i],o=GM.owner[i];if(LOC(i)===0)return 'niente stipendio';if(i===10)return 'solo in visita';if(i===20)return 'mercatino';if(o===pl)return 'tua';if(o)return 'di '+esc(o.name)+(GM.mort[i]?' · ipotecata':' · paghi '+EUR(rentOf(i,7,false)));return 'libera · '+EUR(t.p);};
   modal(`<h2>✈️ Dove vuoi volare?</h2><p>Usi il biglietto al posto dei dadi. ${left}</p>${flyDest(pl).map(i=>`<button class="big fd" data-i="${i}" style="display:flex;justify-content:space-between;gap:10px"><span>${T[i].ic||'🏠'} ${T[i].n}</span><small>${note(i)}</small></button>`).join('')}<button class="big" id="mX">Annulla</button>`);
@@ -1347,21 +1348,21 @@ async function doRoll(){const pl=curP();if(GM.busy||!GM.on||(GM.phase!=='roll'&&
   GM.busy=false;
   if(GM.phase!=='over'){if(pl.out){GM.phase='end';endTurn();return;}const nx=(again&&!pl.jail)?'roll':'end';GM.after=nx;if(GM.phase!=='auction'){GM.phase=nx;if(nx==='roll')say(`Doppio: ${pl.name} tira ancora.`);}}
   ui();}
-function endTurn(){if(GM.phase!=='end'||GM.busy)return;GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
-  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx} La sagra riapre.`);seasonEvents();}else if(GM.sT===SAG_ON*alive().length)say(`🎪 La sagra chiude: riapre alla prossima stagione.`);
+function endTurn(){if(GM.phase!=='end'||GM.busy)return;titCheck();setTidy();GM.dbl=0;let n=GM.cur;do{n=(n+1)%GM.players.length}while(GM.players[n].out);GM.cur=n;const pl=curP();pawn=pl.mesh;face(pl);
+  GM.sT=(GM.sT||0)+1;if(GM.sT>=SEAS_LEN*alive().length){GM.sT=0;GM.season=((GM.season||0)+1)%4;setSeason(GM.season);say(`🗓️ ${SEAS[GM.season].n}! ${SEAS[GM.season].fx} La sagra riapre.`);seasonEvents();pwSeason();}else if(GM.sT===SAG_ON*alive().length)say(`🎪 La sagra chiude: riapre alla prossima stagione.`);
   GM.phase=pl.jail?'jail':'roll';say(`Tocca a ${pl.name}.`);ui();}
 function jailPay(){const pl=curP();if(GM.phase!=='jail'||pl.cash<BAIL)return;pl.cash-=BAIL;pl.jail=0;GM.phase='roll';say(`${pl.name} paga ${EUR(BAIL)} ed esce di prigione.`);ui();}
 function jailCard(){const pl=curP();if(GM.phase!=='jail'||!pl.jf.length)return;const [k,id]=pl.jf.pop();GM.decks[k].push(id);pl.jail=0;GM.phase='roll';say(`${pl.name} usa la carta ed esce di prigione.`);ui();}
 function startGame(cfg){GM.players.forEach(p=>scene.remove(p.mesh));GM.owner={};GM.mort={};GM.log=[];GM.debt=null;GM.auction=null;GM.trade=null;GM.busy=false;GM.dbl=0;
   for(const i in st){st[i].lv=0;rebuild(+i);}for(const i in ownG)updateOwner(+i);G.forEach((_,g)=>{grp[g].theme='';applyTheme(g);});
   ['ch','cc'].forEach(k=>{const d=[...Array(CARDS[k].length).keys()];for(let n=d.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[d[n],d[j]]=[d[j],d[n]];}GM.decks[k]=d;});
-  GM.roll=0;GM.again=false;GM.fly=null;GM.mgr={};GM.wrk={};NET.won=false;GM.season=0;GM.sT=0;setSeason(0);GM.centro={};PLOTS.forEach((_,k)=>buildCentro(k));GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,laps:0,tk:null,mesh:makeToken(c.shape,c.color)}));
+  GM.roll=0;GM.again=false;GM.fly=null;GM.pw=pwNew();GM.mgr={};GM.wrk={};NET.won=false;GM.season=0;GM.sT=0;setSeason(0);GM.centro={};PLOTS.forEach((_,k)=>buildCentro(k));GM.players=cfg.map(c=>({uid:c.uid||'',name:c.name,color:c.color,shape:c.shape,cash:START,pos:0,jail:0,jf:[],out:false,laps:0,tk:null,mesh:makeToken(c.shape,c.color)}));
   GM.players.forEach(p=>scene.add(p.mesh));demo.mesh.visible=false;GM.on=true;GM.cur=0;GM.phase='roll';GM.players.forEach(p=>p.mesh.position.copy(slot(p,0)));pawn=GM.players[0].mesh;face(GM.players[0]);
   updateStaff();if(NQ>1){rad=62;radWide=62;camD=-9;}say(`Si parte! Tocca a ${GM.players[0].name}.`);select(0);ui();}
 async function autoPlay(turns){GM.fast=true;let n=0;for(;n<turns&&GM.phase!=='over';n++){const pl=curP();
     if(GM.phase==='jail'&&pl.cash>=BAIL&&Math.random()<.5)jailPay();
     if(tkCan(pl)){const d=flyDest(pl).filter(i=>RR.includes(i)&&!GM.owner[i]&&pl.cash>=T[i].p+100);if(d.length)await fly(d[0]);}
-    if(GM.phase==='roll'||GM.phase==='jail')await doRoll();
+    pwBot(pl);if(GM.phase==='roll'||GM.phase==='jail')await doRoll();
     if(GM.phase==='over')break;const p2=curP();
     for(let k=0;k<6;k++)owned(p2).forEach(i=>{if(st[i]&&!whyNoBuild(p2,i)&&p2.cash>HC[T[i].g]+150)buildHouse(p2,i);});
     owned(p2).forEach(i=>{if(GM.mort[i]&&p2.cash>T[i].p+300)unmortgage(p2,i);});
@@ -1377,7 +1378,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contain
 function showCard(k,txt){if(GM.fast)return Promise.resolve();return new Promise(res=>{
   modal(`<div class="cardTop" style="background:${k==='ch'?'#f7941d':'#0072bb'}">${k==='ch'?'❓ IMPREVISTO':'🎁 CASSA COMUNE'}</div><div class="cardTxt">${txt}</div><button class="big pri" id="mOk">OK</button>`);
   $('mOk').onclick=()=>{modal('');res();};});}
-function winModal(p){modal(`<h2>🏆 ${p.name} ha vinto!</h2><p>Resta con ${EUR(p.cash)} e tutte le vie.</p><div class="ctrl"><button class="big pri" id="mNew">Nuova partita</button><button class="big" id="mX">Chiudi</button></div>`);
+function winModal(p){const S=GM.pw&&GM.pw.set;modal(`<h2>🏆 ${p.name} ha vinto!</h2><p>Resta con ${EUR(p.cash)} e tutte le vie.</p>${S?'<p>🕯️ La Confraternita segreta era guidata da <b>'+esc((GM.players[S.gm]||{}).name||'?')+'</b>.</p>':''}<div class="ctrl"><button class="big pri" id="mNew">Nuova partita</button><button class="big" id="mX">Chiudi</button></div>`);
   $('mNew').onclick=()=>{if(NET.on)location.href=location.pathname;else setupModal();};$('mX').onclick=()=>modal('');}
 const SETUP={n:2,p:[0,1,2,3,4,5].map(k=>({name:'Giocatore '+(k+1),color:PCOL[[0,2,3,4,5,6][k]],shape:SHAPES[k%5][0]}))};
 function setupModal(){const rows=SETUP.p.slice(0,SETUP.n).map((p,k)=>`<div class="prow"><input data-k="${k}" class="pn" maxlength="14" value="${p.name.replace(/"/g,'')}"><select data-k="${k}" class="ps">${SHAPES.map(([v,n])=>`<option value="${v}" ${v===p.shape?'selected':''}>${n}</option>`).join('')}</select><div class="sw">${PCOL.map(c=>`<i data-k="${k}" data-c="${c}" class="pc ${c===p.color?'on':''}" style="background:${c}"></i>`).join('')}</div></div>`).join('');
@@ -1483,8 +1484,106 @@ function centroModal(pre){const free=!GM.on,me=free?demo:(canAct()?actor():(NET.
     if(!free)$('cGo').onclick=()=>{const m=MONS.find(x=>x[0]===type);if(!m||!ok||!canAct()||me.cash<m[2]||GM.centro[plot]||(m[3]||'')!==(PLOTS[plot][2]||''))return;me.cash-=m[2];GM.centro[plot]={t:type,o:GM.players.indexOf(me)};buildCentro(plot);say(`🏗️ ${me.name} costruisce in centro: ${m[1]}!`);SFX.build();modal('');ui();};};draw();}
 
 /* regole in breve */
+
+/* ================= POTERE: titoli, Re, Giornale, Municipio, Confraternita, jet ================= */
+const PWK=NQ>1?1:.4,PWR=v=>Math.round(v*PWK),TIT=[['Cittadino','🙂',0],['Mercante','💼',PWR(6000)],['Notabile','🎩',PWR(10000)],['Conte','🏰',PWR(16000)]],
+  RE_SAL=150,BOUNTY=.5,APP_CASH=PWR(600),DEN_FEE=PWR(150),CAL_FEE=PWR(300),SET_FEE=PWR(500),ACC_FEE=PWR(300),JET=PWR(10000),BRIBES=[100,300,600,1000,2000].map(PWR),
+  SHADOW={cover:['🤫 Insabbiare',PWR(300),'Questa stagione nessun membro finisce in uno scandalo. Chiude anche le inchieste aperte sui membri.'],sab:['🔧 Sabotaggio',PWR(400),'Scegli uno che non è membro: i suoi affitti sono dimezzati fino al cambio di stagione.'],rig:['🎭 Appalto truccato',PWR(500),'La bustarella di un membro a tua scelta vale doppio questa stagione.']};
+function pwNew(){return {news:[],paper:{n:0,lines:[]},re:-1,tit:[],bribe:{},den:{},acc:{},inch:{},app:{},sab:{},set:null,maxR:null};}
+function PW(){if(!GM.pw)GM.pw=pwNew();return GM.pw;}
+function pwClean(x){const p=Object.assign(pwNew(),x&&typeof x==='object'?JSON.parse(JSON.stringify(x)):{});if(!Array.isArray(p.news))p.news=[];if(!p.paper||!Array.isArray(p.paper.lines))p.paper={n:0,lines:[]};if(p.set&&!Array.isArray(p.set.m))p.set=null;return p;}
+const pk=pl=>GM.players.indexOf(pl),pwMe=()=>NET.on?GM.players[mySeat()]:curP(),setOn=()=>alive().length>=3&&(NET.on||!!window.__setta);
+function patr(pl){return Math.round(pl.cash+owned(pl).reduce((a,i)=>a+(GM.mort[i]?T[i].p/2:T[i].p)+(st[i]?st[i].lv*HC[T[i].g]:0),0)+Object.values(GM.centro||{}).filter(c=>GM.players[c.o]===pl).length*RICH);}
+function titLv(pl){const w=patr(pl);let l=0;TIT.forEach((t,k)=>{if(w>=t[2])l=k;});return l;}
+function isRe(pl){return GM.on&&!!GM.pw&&GM.pw.re>=0&&GM.players[GM.pw.re]===pl&&!pl.out;}
+const titName=pl=>isRe(pl)?'Re':TIT[titLv(pl)][0],titIc=pl=>isRe(pl)?'👑':TIT[titLv(pl)][1];
+function news(t){const p=PW();p.news.push(String(t));if(p.news.length>14)p.news.shift();}
+function pwSay(m){if(!GM.on||NET.applying)return;if(m.startsWith('💥'))news(m.slice(2).trim().replace(/\.$/,''));else if(m.startsWith('🎰'))news('Lotteria di stagione: '+m.replace(/^.*€\. /,'').replace(/!$/,''));}
+function pwMul(k){const p=GM.pw;if(!p||k<0)return 1;let m=1;if(p.app[k])m*=1.25;if(p.inch[k])m*=.75;if(p.sab[k])m*=.5;return m;}
+function setBoth(a,b){const S=GM.pw&&GM.pw.set;return !!S&&a!==b&&S.m.includes(pk(a))&&S.m.includes(pk(b));}
+function titCheck(){const p=PW();GM.players.forEach((pl,k)=>{if(pl.out)return;const l=titLv(pl),o=p.tit[k]||0;
+    if(l>o){say(`🎖️ ${pl.name} sale di titolo: ora è ${TIT[l][0]}.`);news(`${pl.name} diventa ${TIT[l][0]}`);}else if(l<o){say(`📉 ${pl.name} scende di titolo: torna ${TIT[l][0]}.`);news(`${pl.name} crolla: da ${TIT[o][0]} a ${TIT[l][0]}`);}p.tit[k]=l;});
+  const c=GM.players.map((pl,k)=>[k,pl.out||titLv(pl)<3?-1:patr(pl)]).filter(x=>x[1]>=0).sort((a,b)=>b[1]-a[1]);let nr=c.length?c[0][0]:-1;
+  if(nr>=0&&p.re>=0&&p.re!==nr){const cur=c.find(x=>x[0]===p.re);if(cur&&cur[1]>=c[0][1])nr=p.re;}
+  if(nr!==p.re){if(nr>=0){say(`👑 ${GM.players[nr].name} è il nuovo Re di Belluno!`);news(`${GM.players[nr].name} incoronato Re di Belluno`);}else{say(`👑 Belluno resta senza Re.`);news('Il trono di Belluno è vuoto');}p.re=nr;}}
+function pwRentPaid(pl,o,r){const p=PW(),S=p.set;if(!p.maxR||r>p.maxR[2])p.maxR=[pl.name,o.name,r];
+  if(isRe(pl)&&!o.out){const b=Math.round(r*BOUNTY);if(b>0){o.cash+=b;say(`🎯 Taglia sul Re: ${o.name} ha fatto pagare il Re e la banca gli dà un premio di ${EUR(b)}.`);}}
+  if(S&&S.m.includes(pk(o))&&!S.m.includes(pk(pl)))S.box+=Math.round(r*.1);}
+function setTidy(){const p=PW(),S=p.set;if(!S)return;S.m=S.m.filter(k=>GM.players[k]&&!GM.players[k].out);if(!S.m.length){p.set=null;return;}if(!S.m.includes(S.gm))S.gm=S.m[0];if(S.inv>=0&&(!GM.players[S.inv]||GM.players[S.inv].out))S.inv=-1;}
+function pwSeason(){const p=PW();setTidy();const S=p.set;
+  [p.app,p.inch,p.sab].forEach(o=>{for(const k in o){if(--o[k]<=0)delete o[k];}});
+  const ks=Object.keys(p.bribe).map(Number).filter(k=>GM.players[k]&&!GM.players[k].out&&p.bribe[k]>0);
+  if(ks.length){const caught=ks.filter(k=>{const mem=S&&S.m.includes(k);let risk=.2+(p.bribe[k]>=BRIBES[3]?.15:0);if(mem)risk/=2;if(mem&&S.cover)risk=0;return Math.random()<risk;});
+    caught.forEach(k=>{const pl=GM.players[k],f=Math.min(Math.max(0,pl.cash),p.bribe[k]);pl.cash-=f;p.inch[k]=1;delete p.app[k];say(`🚨 Scandalo in Municipio: ${pl.name} scoperto con una bustarella da ${EUR(p.bribe[k])}. Multa di ${EUR(f)} e una stagione sotto inchiesta: affitti −25%.`);news(`SCANDALO: ${pl.name} e la bustarella da ${EUR(p.bribe[k])}`);});
+    const ok=ks.filter(k=>!caught.includes(k)&&GM.players[k].cash>=p.bribe[k]).map(k=>[k,p.bribe[k]*(S&&S.rig===k?2:1)+Math.random()]).sort((a,b)=>b[1]-a[1]);
+    if(ok.length){const w=ok[0][0],pl=GM.players[w];pl.cash+=APP_CASH-p.bribe[w];p.app[w]=1;say(`🏛️ L'appalto del Comune va a ${pl.name}: incassa ${EUR(APP_CASH)} e per una stagione i suoi affitti salgono del 25%.`);news(`L'appalto del Comune va a ${pl.name}`);}
+    else say(`🏛️ Nessuno si aggiudica l'appalto del Comune.`);}
+  p.bribe={};p.den={};p.acc={};if(S){S.cover=false;S.rig=-1;S.used=false;}
+  titCheck();
+  if(p.maxR)p.news.push(`Affitto record: ${p.maxR[0]} paga ${EUR(p.maxR[2])} a ${p.maxR[1]}`);
+  const lines=p.news.slice(-7).reverse();if(!lines.length)lines.push('Stagione tranquilla a Belluno');
+  p.paper={n:(p.paper.n||0)+1,lines,seas:GM.season||0};p.news=[];p.maxR=null;say(`📰 Giornale di Belluno: ${lines[0]}.`);}
+function pwCan(){const pl=curP();return GM.on&&!GM.busy&&(GM.phase==='roll'||GM.phase==='end')&&!pl.out&&(!NET.on||mine());}
+function pwBribe(a){const pl=curP(),k=pk(pl),p=PW();if(!pwCan()||p.bribe[k]||p.inch[k]||!(a>0)||pl.cash<a)return false;p.bribe[k]=a;ui();return true;}
+function pwDenounce(t){const pl=curP(),k=pk(pl),p=PW(),tp=GM.players[t];if(!pwCan()||p.den[k]||t===k||!tp||tp.out||pl.cash<DEN_FEE)return false;p.den[k]=1;
+  if(p.bribe[t]){const a=p.bribe[t],f=Math.min(Math.max(0,tp.cash),a),rw=Math.round(f/2);tp.cash-=f;pl.cash+=rw;delete p.bribe[t];p.inch[t]=2;delete p.app[t];
+    say(`🚨 ${pl.name} denuncia ${tp.name}: trovata una bustarella da ${EUR(a)}! ${tp.name} paga ${EUR(f)} di multa e finisce sotto inchiesta. ${pl.name} incassa ${EUR(rw)} di premio.`);news(`SCANDALO: ${pl.name} incastra ${tp.name} per la bustarella da ${EUR(a)}`);}
+  else{pl.cash-=DEN_FEE;const c=Math.min(Math.max(0,pl.cash),CAL_FEE);pl.cash-=c;tp.cash+=c;say(`⚖️ ${pl.name} denuncia ${tp.name}, ma il Municipio non trova niente. Calunnia: paga ${EUR(DEN_FEE)} di spese e ${EUR(c)} a ${tp.name}.`);news(`${pl.name} condannato per calunnia contro ${tp.name}`);}
+  titCheck();ui();return true;}
+function pwFound(){const pl=curP(),k=pk(pl),p=PW();if(!pwCan()||!setOn()||p.set||titLv(pl)<2||pl.cash<SET_FEE)return false;pl.cash-=SET_FEE;p.set={gm:k,m:[k],inv:-1,box:0,cover:false,rig:-1,used:false};ui();return true;}
+function pwInvite(t){const k=pk(curP()),S=PW().set,tp=GM.players[t];if(!pwCan()||!S||S.gm!==k||S.inv>=0||!tp||tp.out||S.m.includes(t))return false;S.inv=t;ui();return true;}
+function pwAnswer(yes){const k=pk(curP()),S=PW().set;if(!S||S.inv!==k)return false;S.inv=-1;if(yes)S.m.push(k);ui();return true;}
+function pwShadow(ty,t){const k=pk(curP()),p=PW(),S=p.set,d=SHADOW[ty],tp=GM.players[t];if(!pwCan()||!S||S.gm!==k||S.used||!d||S.box<d[1])return false;
+  if(ty==='sab'){if(!tp||tp.out||S.m.includes(t))return false;p.sab[t]=1;say(`🔧 Guasti misteriosi nelle vie di ${tp.name}: affitti dimezzati fino al cambio di stagione.`);news(`Guasti misteriosi nelle vie di ${tp.name}: chi c'è dietro?`);}
+  else if(ty==='rig'){if(!S.m.includes(t))return false;S.rig=t;}
+  else{S.cover=true;S.m.forEach(m=>delete p.inch[m]);}
+  S.box-=d[1];S.used=true;ui();return true;}
+function pwAccuse(t){const pl=curP(),k=pk(pl),p=PW(),S=p.set,tp=GM.players[t];if(!pwCan()||!setOn()||p.acc[k]||t===k||!tp||tp.out||pl.cash<ACC_FEE||(S&&S.m.includes(k)))return false;p.acc[k]=1;
+  if(S&&S.m.includes(t)){const names=S.m.map(m=>GM.players[m].name+(m===S.gm?' (Gran Maestro)':'')).join(', '),half=Math.round(S.box/2);S.m.forEach(m=>{const q=GM.players[m],f=Math.min(Math.max(0,q.cash),ACC_FEE);q.cash-=f;});pl.cash+=half;p.set=null;
+    say(`🕯️ ${pl.name} smaschera la Confraternita! Ne facevano parte: ${names}. Ogni membro paga ${EUR(ACC_FEE)} di multa${half?' e '+pl.name+' si prende '+EUR(half)+' dalla cassa nera':''}.`);news(`SMASCHERATA LA CONFRATERNITA: ${names}`);}
+  else{const c=Math.min(Math.max(0,pl.cash),ACC_FEE);pl.cash-=c;tp.cash+=c;say(`⚖️ ${pl.name} accusa ${tp.name} di far parte di una setta segreta, ma non ha prove: gli paga ${EUR(c)}.`);news(`${pl.name} vede sette segrete dappertutto`);}
+  titCheck();ui();return true;}
+function pwJet(){const pl=curP();if(!pwCan()||pl.jet||pl.cash<JET)return false;pl.cash-=JET;pl.jet=true;say(`🛩️ ${pl.name} compra un jet privato per ${EUR(JET)}: d'ora in poi vola quando vuole.`);news(`${pl.name} si compra il jet privato`);ui();return true;}
+function pwBot(pl){const p=PW(),k=pk(pl);if(!p.bribe[k]&&!p.inch[k]&&pl.cash>PWR(2500)&&Math.random()<.05)p.bribe[k]=BRIBES[Math.floor(Math.random()*3)];
+  if(!p.den[k]&&pl.cash>PWR(3000)&&Math.random()<.008){const o=alive().filter(q=>q!==pl);if(o.length){const sv=GM.phase,b=GM.busy;GM.busy=false;if(sv==='roll'||sv==='end')pwDenounce(pk(o[Math.floor(Math.random()*o.length)]));GM.busy=b;}}
+  if(!pl.jet&&pl.cash>JET*1.6&&(GM.phase==='roll'||GM.phase==='end'))pwJet();}
+function crownSync(){if(!GM.on)return;GM.players.forEach(p=>{if(!p.mesh)return;let c=p.mesh.userData.crown;const on=isRe(p);if(on&&!c){const b=new THREE.Box3().setFromObject(p.mesh),top=(b.max.y-p.mesh.position.y)/(p.mesh.scale.y||1);c=new THREE.Group();const gm=M('#ffd23d',{metalness:.9,roughness:.2,emissive:'#7a5a00'});
+      const ring=new THREE.Mesh(new THREE.CylinderGeometry(.2,.17,.1,20,1,true),gm);ring.material.side=THREE.DoubleSide;c.add(ring);for(let a=0;a<6;a++){const sp=new THREE.Mesh(new THREE.ConeGeometry(.045,.13,8),gm);sp.position.set(Math.cos(a*Math.PI/3)*.185,.11,Math.sin(a*Math.PI/3)*.185);c.add(sp);}
+      c.position.y=top+.1;p.mesh.add(c);p.mesh.userData.crown=c;}if(c)c.visible=on;});}
+function paperModal(){const p=PW(),P=p.paper,nm=['Primavera','Estate','Autunno','Inverno'];const b=$('bG');if(b)b.classList.remove('on');GM.paperSeen=P.n;
+  modal(`<div style="background:#f4ecd8;color:#1b1b1b;border-radius:10px;padding:16px 18px;font-family:Georgia,serif"><div style="text-align:center;border-bottom:3px double #1b1b1b;padding-bottom:6px"><div style="font-size:30px;font-weight:900;letter-spacing:1px">IL GIORNALE DI BELLUNO</div><small>Edizione n. ${P.n||0}${P.n?' · '+(SEAS[P.seas||0]?SEAS[P.seas||0].n:nm[P.seas||0]):''}</small></div>
+  ${P.lines.length?`<div style="font-size:23px;font-weight:900;margin:12px 0 8px;line-height:1.15">${esc(P.lines[0])}</div>`+P.lines.slice(1).map(l=>`<div style="border-top:1px solid #0003;padding:7px 0;font-size:15.5px">▪ ${esc(l)}</div>`).join(''):'<p style="margin:14px 0">Il primo numero esce al prossimo cambio di stagione.</p>'}</div><button class="big pri" id="mX" style="margin-top:12px">Chiudi</button>`);$('mX').onclick=()=>modal('');}
+function powerModal(){if(!GM.on)return;const p=PW(),me=pwMe();if(!me||me.out)return;const k=pk(me),can=pwCan()&&me===curP(),S=p.set,mem=!!S&&S.m.includes(k),lv=titLv(me),w=patr(me),nx=TIT[lv+1];
+  const others=GM.players.map((q,i)=>[q,i]).filter(x=>!x[0].out&&x[1]!==k),btn=(id,txt,dis,cls)=>`<button class="${cls||''}" data-a="${id}" ${dis?'disabled':''} style="margin:3px 4px 3px 0">${txt}</button>`,H=t=>`<h3 style="margin:14px 0 4px">${t}</h3>`;
+  let h=`<h2>🏛️ Potere</h2>`+H(`${titIc(me)} Sei ${titName(me)}`)+`<p>Patrimonio: <b>${EUR(w)}</b> (contanti, vie, case, opere).${nx?` Ti mancano <b>${EUR(nx[2]-w)}</b> per diventare ${nx[0]}.`:' Hai il titolo più alto: il Re è il Conte più ricco.'}</p>`
+   +(nx?`<div style="height:9px;background:#ffffff25;border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${Math.max(3,Math.min(100,Math.round((w-TIT[lv][2])/(nx[2]-TIT[lv][2])*100)))}%;background:#ffd23d"></i></div>`:'')
+   +`<p style="margin-top:6px">${GM.players.filter(q=>!q.out).map(q=>`${titIc(q)} ${esc(q.name)}: ${titName(q)}, ${EUR(patr(q))}`).join(' · ')}</p><p><small>Il <b>Re</b> prende ${EUR(RE_SAL)} in più di stipendio. Ma ha la <b>taglia</b>: chi gli fa pagare un affitto riceve dalla banca un premio pari a metà dell'affitto.</small></p>`;
+  h+=H('🏛️ Municipio')+`<p>A ogni cambio di stagione il Comune assegna un <b>appalto</b>: ${EUR(APP_CASH)} subito e affitti +25% per una stagione. Lo vince chi ha promesso la <b>bustarella</b> più alta, e la paga solo lui. Rischio: uno <b>scandalo</b> (1 su 5, di più con le buste grosse) ti costa la busta e una stagione di affitti −25%.</p>`
+   +`<p>${Object.keys(p.app).map(i=>GM.players[i]?'🏗️ Appalto: '+esc(GM.players[i].name):'').concat(Object.keys(p.inch).map(i=>GM.players[i]?'🚨 Sotto inchiesta: '+esc(GM.players[i].name):''),Object.keys(p.sab).map(i=>GM.players[i]?'🔧 Guasti: '+esc(GM.players[i].name):'')).filter(Boolean).join(' · ')||'Nessun appalto e nessuna inchiesta in corso.'}</p>`
+   +(p.inch[k]?'<p>Sei sotto inchiesta: niente bustarelle per ora.</p>':p.bribe[k]?`<p>✉️ Hai promesso una bustarella da <b>${EUR(p.bribe[k])}</b>. Nessuno lo sa.</p>`:`<div>Prometti una bustarella: ${BRIBES.filter((a,i)=>i<4||lv>=3).map(a=>btn('b'+a,EUR(a),!can||me.cash<a)).join('')}</div>`)
+   +`<div style="margin-top:6px">Denuncia chi secondo te ha promesso una busta (${EUR(DEN_FEE)} di spese; se hai ragione prendi metà della multa, se sbagli paghi ${EUR(CAL_FEE)} a lui): ${others.map(x=>btn('d'+x[1],'⚖️ '+esc(x[0].name),!can||p.den[k]||me.cash<DEN_FEE)).join('')}</div>`;
+  if(setOn()){h+=H('🕯️ Confraternita segreta');
+    if(mem){const gmk=S.gm===k;h+=`<p>Sei <b>${gmk?'Gran Maestro':'Adepto'}</b>. Membri: ${S.m.map(m=>esc(GM.players[m].name)+(m===S.gm?' (Gran Maestro)':'')).join(', ')}. Cassa nera: <b>${EUR(S.box)}</b>.</p><p><small>Tra membri l'affitto è a metà. Rischio di scandalo dimezzato. La cassa nera cresce con gli affitti che i membri incassano dagli altri e con una fetta della lotteria. Se uno di fuori vi smaschera, la setta si scioglie e pagate la multa.</small></p>`;
+      if(gmk){h+=`<div>${S.inv>=0?'Invito in attesa per '+esc(GM.players[S.inv].name)+'.':'Invita: '+others.filter(x=>!S.m.includes(x[1])).map(x=>btn('i'+x[1],'✉️ '+esc(x[0].name),!can)).join('')}</div><p style="margin-top:8px"><b>Mossa nell'ombra</b> (una per stagione, pagata dalla cassa nera)${S.used?': già fatta.':':'}</p>`;
+        if(!S.used)h+=`<div>${btn('scover',SHADOW.cover[0]+' · '+EUR(SHADOW.cover[1]),!can||S.box<SHADOW.cover[1])}<small>${SHADOW.cover[2]}</small></div><div>${others.filter(x=>!S.m.includes(x[1])).map(x=>btn('ss'+x[1],'🔧 Sabota '+esc(x[0].name)+' · '+EUR(SHADOW.sab[1]),!can||S.box<SHADOW.sab[1])).join('')}</div><div>${S.m.map(m=>btn('sr'+m,'🎭 Trucca l’appalto per '+esc(GM.players[m].name)+' · '+EUR(SHADOW.rig[1]),!can||S.box<SHADOW.rig[1])).join('')}</div>`;}}
+    else h+=`<p>Si dice che a Belluno qualcuno si riunisca di notte. Una setta ha affitti a metà tra i membri, una cassa nera e mosse nell'ombra.</p><div>${btn('found','🕯️ Fonda una Confraternita · '+EUR(SET_FEE),!can||lv<2||me.cash<SET_FEE)} <small>Serve il titolo di Notabile.</small></div><div style="margin-top:6px">Accusa un giocatore di essere in una setta (se hai ragione la sciogli e prendi metà della cassa nera; se sbagli gli paghi ${EUR(ACC_FEE)}): ${others.map(x=>btn('a'+x[1],'🕯️ '+esc(x[0].name),!can||p.acc[k]||me.cash<ACC_FEE)).join('')}</div>`;}
+  h+=H('🛩️ Jet privato')+(me.jet?'<p>Hai il jet: a inizio turno puoi volare al posto dei dadi, senza biglietto.</p>':`<p>Costa ${EUR(JET)}. Voli quando vuoi, a inizio turno, al posto dei dadi.</p>${btn('jet','🛩️ Compra il jet',!can||me.cash<JET,'act')}`)
+   +(can?'':'<p><small>Le azioni si fanno nel tuo turno, prima dei dadi o prima di chiudere.</small></p>')+`<div class="ctrl"><button class="big" id="mX">Chiudi</button></div>`;
+  modal(h);$('mX').onclick=()=>modal('');
+  $('modal').querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a,n=+a.replace(/^\D+/,'');let ok=false;
+    if(a==='jet')ok=pwJet();else if(a==='found'){ok=pwFound();if(!ok&&PW().set){modal(`<h2>🕯️ Troppo tardi</h2><p>Bussi alla porta giusta, ma qualcuno ti ha preceduto: a Belluno <b>esiste già una Confraternita</b>. Non sai chi ne fa parte. Tieniti i tuoi soldi e gli occhi aperti.</p><button class="big pri" id="mX">Capito</button>`);$('mX').onclick=()=>modal('');return;}}else if(a==='scover')ok=pwShadow('cover');else if(a.startsWith('ss'))ok=pwShadow('sab',n);else if(a.startsWith('sr'))ok=pwShadow('rig',n);
+    else if(a[0]==='b')ok=pwBribe(n);else if(a[0]==='d')ok=pwDenounce(n);else if(a[0]==='i')ok=pwInvite(n);else if(a[0]==='a')ok=pwAccuse(n);
+    if($('modal').classList.contains('show')&&$('modal').querySelector('button[data-a]'))powerModal();});}
+function pwInviteAsk(){const S=GM.pw&&GM.pw.set,pl=curP();if(!S||S.inv<0||S.inv!==pk(pl)||GM.fast||!pwCan()||GM.phase!=='roll'||$('modal').classList.contains('show')||GM.invAsk===GM.roll+'_'+GM.cur)return;GM.invAsk=GM.roll+'_'+GM.cur;
+  modal(`<h2>✉️ Una lettera sigillata</h2><p>Qualcuno ha lasciato una busta nera sotto la tua porta, ${esc(pl.name)}.</p><p><b>${esc(GM.players[S.gm].name)}</b> ti invita nella <b>Confraternita</b>: affitti a metà tra i membri, meno rischi in Municipio, una cassa nera per le mosse nell'ombra. Se vi scoprono pagate tutti.</p><p>Se rifiuti, sai chi è il Gran Maestro. Decidi tu cosa farne.</p><div class="ctrl"><button class="big pri" id="iY">🕯️ Entro</button><button class="big" id="iN">Rifiuto</button></div>`);
+  $('iY').onclick=()=>{modal('');pwAnswer(true);};$('iN').onclick=()=>{modal('');pwAnswer(false);};}
+
 function rulesModal(){const R=[
  ['🎯 Scopo','Conquista Belluno: compra, costruisci e manda in bancarotta gli altri finché tutto è tuo. Vince chi resta ultimo.'],
+ ['👑 Titoli e Re',`Il tuo <b>patrimonio</b> (contanti, vie, case, opere) ti dà un titolo: ${TIT.map(t=>t[1]+' '+t[0]+(t[2]?' da '+EUR(t[2]):'')).join(', ')}. Il Conte più ricco è il <b>Re</b> 👑: ${EUR(RE_SAL)} in più di stipendio e la corona sulla pedina. Ma sul Re c’è la <b>taglia</b>: chi gli fa pagare un affitto prende dalla banca un premio pari a metà dell’affitto.`],
+ ['🏛️ Municipio e bustarelle',`Pulsante <b>🏛️ Potere</b>, nel tuo turno. A ogni cambio di stagione il Comune dà un <b>appalto</b>: ${EUR(APP_CASH)} e affitti +25% per una stagione. Vince chi ha promesso in segreto la bustarella più alta, e la paga. Chi ha promesso una busta rischia lo <b>scandalo</b>: multa e una stagione di affitti −25%. Puoi <b>denunciare</b> un altro: se aveva una busta lo rovini e incassi, se no paghi tu per calunnia.`],
+ ['🕯️ Confraternita segreta',`Solo online, da 3 giocatori. Un Notabile può fondarla (${EUR(SET_FEE)}) e invitare gli altri con una lettera. Tra membri l’affitto è a metà. La <b>cassa nera</b> cresce di nascosto e paga le <b>mosse nell’ombra</b> del Gran Maestro: insabbiare, sabotare, truccare l’appalto. Chi è fuori può accusare: se indovina un membro, la setta si scioglie.`],
+ ['📰 Giornale e jet',`A ogni cambio di stagione esce il <b>Giornale di Belluno</b> (pulsante 📰) con chi sale, chi crolla, scandali e colpi grossi. Con ${EUR(JET)} compri il <b>jet privato</b>: voli a inizio turno quando vuoi, senza biglietto.`],
  ...(NQ>1?[['💰 Soldi sul tabellone grande',`Si parte con <b>${EUR(START)}</b>. Gli affitti senza case, delle stazioni e delle società sono <b>doppi</b>. Lo <b>stipendio cresce</b>: ${EUR(SAL)} più ${EUR(SALV)} per ogni tua via non ipotecata. A ogni cambio di stagione c’è la <b>lotteria</b>: chi ha almeno ${EUR(LOT_T)} compra un biglietto, la banca aggiunge ${EUR(LOT_B)}, uno solo vince tutto.`]]:[]),
  ['🎲 Il turno','Tiri i dadi e avanzi. Con un doppio tiri ancora; al terzo doppio di fila vai in prigione. Poi premi <b>Fine turno</b>.'],
  ['🏠 Vie, stazioni e società',`Se la casella è libera puoi comprarla. Se non la compri va all’<b>asta</b>: 15 secondi, tutti offrono quanto vogliono. Se è di un altro, gli paghi l’affitto. Con tutta una serie di un colore l’affitto raddoppia e puoi costruire case e alberghi.`],
@@ -1506,13 +1605,13 @@ function rulesModal(){const R=[
 
 /* barra delle azioni e stato a schermo */
 function ui(){if(GM.fast)return;
-  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}${p.tk!=null?' 🎫':''}${p.items&&p.items.length?' 🧺'+p.items.length:''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
-  fxCash();renderHand();seasChip();sagSync();
+  $('players').innerHTML=GM.players.map((p,k)=>`<div class="pl ${k===GM.cur&&GM.phase!=='over'?'cur':''} ${p.out?'out':''}" data-k="${k}" title="Clicca per vedere le sue proprietà"><i style="background:${p.color}"></i><span style="float:none;margin:0 3px 0 0" title="${titName(p)}">${titIc(p)}</span>${esc(p.name)}${NET.on&&p.uid===NET.uid?' (tu)':''}${p.jet?' 🛩️':''}${p.jail?' ⛓️':''}${p.jf.length?' 🎟️':''}${p.tk!=null?' 🎫':''}${p.items&&p.items.length?' 🧺'+p.items.length:''}<span>${EUR(p.cash)}</span><small>🏠 ${owned(p).length}</small></div>`).join('');
+  fxCash();renderHand();seasChip();sagSync();crownSync();{const b=$('bG');if(b&&GM.on&&GM.pw)b.classList.toggle('on',(GM.pw.paper.n||0)>(GM.paperSeen||0));}
   const pl=curP(),t=T[pl.pos];
   const gb=$('gbar');gb.innerHTML='';gb.style.display='';const row=document.createElement('div');row.className='btns';
   const B=(txt,fn,cls,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.disabled=!!dis;b.onclick=fn;row.appendChild(b);return b;};
   const S=txt=>{const e=document.createElement('div');e.className='st';e.textContent=txt;gb.appendChild(e);return e;};
-  const extra=()=>{const me=NET.on?GM.players[mySeat()]:pl;if(me&&!me.out)B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(me)));};
+  const extra=()=>{const me=NET.on?GM.players[mySeat()]:pl;if(me&&!me.out){B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(me)));B('🏛️ Potere',powerModal);}};
   const myTurnExtra=()=>{if(alive().length>1)B('🤝 Scambio',()=>tradeModal());extra();if(pl.cash>=RICH&&PLOTS.some((_,k)=>!GM.centro[k]))B('🏗️ Costruisci in centro',()=>centroModal(),'act');};
   if(!GM.on){S('Stai esplorando il mondo');B('Avanti 1',()=>{if(!segs.length)advance(demo,1).then(ui);});B('🎲 Tira i dadi',()=>{if(segs.length)return;const a=d6(),b=d6(),d=$('dice');d.style.display='';d.textContent=`🎲 ${a} + ${b} = ${a+b}`;rollDiceAnim(a,b).then(()=>advance(demo,a+b)).then(ui);},'act');B('🏗️ Opere del centro',()=>centroModal());B('🗓️ Cambia stagione',()=>{setSeason(SEASON+1);});B('▶ Gioca una partita',startModal,'pri');}
   else if(GM.phase==='auction'&&GM.auction){const a=GM.auction,e=S('');e.innerHTML=`🔨 Asta: <b>${T[a.i].n}</b> · ${a.bid?'offerta più alta '+EUR(a.bid)+' di '+esc(GM.players[a.leader].name):'nessuna offerta'} · ⏱ <b id="aucT">${Math.ceil(Math.max(0,(GM.aucEnd||0)-Date.now())/1000)}</b> s`;
@@ -1532,13 +1631,13 @@ function ui(){if(GM.fast)return;
     S(`${pl.name}, vuoi comprare ${T[i].n}? Se non la compri va all'asta.`);B(`Compra per ${EUR(T[i].p)}`,()=>done(true),'pri',pl.cash<T[i].p);B('Non comprare',()=>done(false));}
   else if(GM.phase==='debt'){const d=GM.debt;S(`${d.pl.name} deve pagare ${EUR(d.amt)}: vendi case o ipoteca, poi paga`);B('Paga',()=>GM.debtRes(true),'pri',d.pl.cash<d.amt);if(d.to)B('🏠 Cedi proprietà a '+d.to.name,cedeModal);B('Vendi e ipoteca in automatico',()=>{autoRaise(d.pl,d.amt);ui();});B('📋 Le mie proprietà',()=>propsModal(GM.players.indexOf(d.pl)));B('Bancarotta',()=>GM.debtRes(false),'act');}
   else if(GM.busy){S(`${pl.name} sta muovendo…`);}
-  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}: tira i dadi`);B('🎲 Tira i dadi',doRoll,'act');if(tkCan(pl))B('✈️ Usa il biglietto aereo',flyModal,'pri');myTurnExtra();}
+  else if(GM.phase==='roll'){S(`Tocca a ${pl.name}: tira i dadi`);B('🎲 Tira i dadi',doRoll,'act');if(tkCan(pl))B(pl.tk==null?'🛩️ Usa il jet privato':'✈️ Usa il biglietto aereo',flyModal,'pri');myTurnExtra();}
   else if(GM.phase==='jail'){S(`${pl.name} è in prigione (tentativo ${pl.jail} di 3)`);B('🎲 Tira per il doppio',doRoll,'act');B(`Paga ${EUR(BAIL)}`,jailPay,'',pl.cash<BAIL);if(pl.jf.length)B('🎟️ Usa la carta',jailCard);extra();}
   else if(GM.phase==='end'){S(`${pl.name}: puoi costruire o scambiare, poi chiudi il turno`);B('Fine turno ➜',endTurn,'pri');myTurnExtra();}
   else if(GM.phase==='over'){S('Partita finita');if(!NET.on)B('▶ Nuova partita',setupModal,'pri');}
   if(row.children.length)gb.appendChild(row);if(!gb.children.length)gb.style.display='none';
   select(sel);
-  if(GM.propsOpen!=null&&$('pm'))propsModal(GM.propsOpen);
+  if(GM.propsOpen!=null&&$('pm'))propsModal(GM.propsOpen);pwInviteAsk();
   if(NET.on&&GM.on){const m=mine()&&GM.phase!=='over';if(m&&!NET.wasMine)SFX.turn();NET.wasMine=m;document.title=m?'🎲 Tocca a te! – Re di Belluno':'Re di Belluno';
     const a=mine();if(a||NET.wasAct||NET.force){NET.force=false;netPush();}NET.wasAct=a;}}
 
@@ -1577,7 +1676,12 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   else if(m.startsWith('🧺'))fxBanner('🧺 MERCATINO',nm,'#ffd23d',1);
   else if(m.startsWith('🛣️'))fxBanner('🛣️ STRADA INTERNA',nm,'#c9b8ff',1);
   else if(m.startsWith('🎡'))fxBanner('🎡 RUOTA DELLA FORTUNA',nm,'#ffd23d',1);
-  else if(m.startsWith('🎰')){fxBanner('🎰 LOTTERIA DI STAGIONE',nm.replace(/^.*aggiunge [^.]*\. /,''),'#ffd23d');fxRain(['🎰','💶','🎉'],40);}
+  else if(m.startsWith('📰')){fxBanner('📰 GIORNALE DI BELLUNO',nm.replace(/^Giornale di Belluno: /,''),'#f4ecd8',1);}
+  else if(m.startsWith('👑')){fxBanner('👑 RE DI BELLUNO',nm,'#ffd23d');fxRain(['👑','⭐'],30);}
+  else if(m.startsWith('🚨')){fxShake();fxBanner('🚨 SCANDALO!',nm.split(':')[0],'#ff5a4d');}
+  else if(m.startsWith('🕯️')){fxShake();fxBanner('🕯️ CONFRATERNITA SMASCHERATA',nm.split('!')[0],'#c9b8ff');}
+  else if(/^(🏛️|🎖️|🎯|🛩️|⚖️|🔧)/.test(m))fxBanner(m.split(' ')[0]+' '+({'🏛️':'MUNICIPIO','🎖️':'NUOVO TITOLO','🎯':'TAGLIA SUL RE','🛩️':'JET PRIVATO','⚖️':'CALUNNIA','🔧':'SABOTAGGIO'}[m.split(' ')[0]]||''),nm,'#ffd23d',1);
+  else if(m.startsWith('🎰')){fxBanner('🎰 LOTTERIA DI STAGIONE',nm.replace(/^.*€\. /,''),'#ffd23d');fxRain(['🎰','💶','🎉'],40);}
   else if(m.startsWith('🎟️')&&m.includes('primo premio')){fxBanner('🎟️ PRIMO PREMIO!',nm,'#ffd23d');fxRain(['🎟️','💶','🎉'],40);}
   else if(/^(🎪|🎯|🍷|🎟️|🎶|🎁)/.test(m))fxBanner('🎪 SAGRA',nm,'#ffd23d',1);
   else if(/^(🏟️|⛲|🏰|🚡|🗼|🏝️)/.test(m))fxBanner(m.split(' ')[0]+' OPERA DEL CENTRO',nm,'#ffd23d',1);
@@ -1658,7 +1762,7 @@ function renderHand(){const h=$('hand'),p=GM.on?(NET.on?GM.players[mySeat()]:cur
   $('handS').textContent=(NET.on?'Le tue carte':'Carte di '+p.name)+' · ordine: '+HSORT+' ⇄';
   $('handS').onclick=()=>{HSORT={colore:'valore',valore:'nome',nome:'colore'}[HSORT]||'colore';try{localStorage.setItem('rdb_sort',HSORT);}catch(e){}renderHand();};
   h.querySelectorAll('.hc[data-i]').forEach(e=>e.onclick=()=>select(+e.dataset.i));const tc=h.querySelector('.hc.tk');if(tc)tc.onclick=flyModal;}
-function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||m.startsWith('🎰')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
+function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||m.startsWith('🎰')||m.startsWith('🎯')||m.startsWith('🏛️')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
   else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾')||/^(🏟️|⛲|🏝️)/.test(m)||(/^(🎯|🎟️|🎁)/.test(m)&&m.includes(' vince ')))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
@@ -1706,9 +1810,9 @@ function claimModal(){const a=GM.players.map((p,k)=>[p,k]).filter(x=>!x[0].out);
   $('modal').querySelectorAll('.cl').forEach(e=>{e.textContent='Sono '+GM.players[e.dataset.k].name;e.onclick=()=>{GM.players[e.dataset.k].uid=NET.uid;modal('');NET.force=true;ui();};});$('mX').onclick=()=>{NET.spect=true;modal('');};}
 function netSnap(){const ow={};for(const i in GM.owner)ow[i]=GM.players.indexOf(GM.owner[i]);const S={};for(const i in st)S[i]=st[i];
   return {started:true,nq:NQ,host:NET.hostUid,v:++NET.v,cur:GM.cur,phase:GM.phase,busy:GM.busy,dbl:GM.dbl,again:!!GM.again,dice:GM.dice,roll:GM.roll||0,decks:GM.decks,
-    players:GM.players.map(p=>({items:p.items||[],uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out,noIn:!!p.noIn,noSag:!!p.noSag,laps:p.laps||0,tk:p.tk==null?null:p.tk})),
+    players:GM.players.map(p=>({items:p.items||[],uid:p.uid||'',name:p.name,color:p.color,shape:p.shape,cash:p.cash,pos:p.pos,jail:p.jail,jf:p.jf,out:p.out,noIn:!!p.noIn,noSag:!!p.noSag,laps:p.laps||0,tk:p.tk==null?null:p.tk,jet:!!p.jet})),
     owner:ow,mort:Object.keys(GM.mort).map(Number),st:S,grp:grp.map(g=>({theme:g.theme,light:g.light})),log:GM.log.slice(-40),logN:NET.logN,
-    auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,season:GM.season||0,sT:GM.sT||0,fly:GM.fly||null,mgr:GM.mgr,wrk:GM.wrk,
+    auction:GM.auction?Object.assign({},GM.auction,{left:Math.max(0,(GM.aucEnd||0)-Date.now())}):null,trade:GM.trade||null,after:GM.after||'end',centro:GM.centro,season:GM.season||0,sT:GM.sT||0,fly:GM.fly||null,mgr:GM.mgr,wrk:GM.wrk,pw:GM.pw||null,
     debt:GM.debt?{pl:GM.players.indexOf(GM.debt.pl),amt:GM.debt.amt,to:GM.debt.to?GM.players.indexOf(GM.debt.to):-1}:null};}
 function netPush(){if(!NET.on||!NET.started||NET.applying||GM.fast)return;clearTimeout(NET.timer);NET.lastAct=Date.now();NET.timer=setTimeout(()=>{const s=JSON.parse(JSON.stringify(netSnap()));bcast('state',s);
   NET.saving=NET.saving.then(()=>rpc('room_save',{p_code:NET.code,p_state:s})).catch(()=>{});},120);}
@@ -1721,7 +1825,7 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     if(!GM.on||GM.players.length!==s.players.length){GM.players.forEach(p=>scene.remove(p.mesh));
       GM.players=s.players.map(c=>{const col=/^#[0-9a-f]{6}$/i.test(c.color)?c.color:PCOL[0],p={uid:c.uid,name:String(c.name).slice(0,14),color:col,shape:c.shape,cash:c.cash,pos:c.pos,jail:c.jail,jf:c.jf||[],out:!!c.out,mesh:makeToken(c.shape,col)};if(!p.out)scene.add(p.mesh);return p;});
       GM.on=true;demo.mesh.visible=false;GM.owner={};GM.mort={};GM.log=[];GM.players.forEach(p=>p.mesh.position.copy(slot(p,p.pos)));if($('modal').classList.contains('show'))modal('');}
-    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.items=Array.isArray(c.items)?c.items.filter(x=>Array.isArray(x)&&x.length===4).slice(0,MKT_MAX).map(x=>[String(x[0]).slice(0,40),String(x[1]).slice(0,4),+x[2]||0,Math.max(0,Math.min(3,x[3]|0))]):[];p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.laps=c.laps|0;p.noIn=!!c.noIn;p.noSag=!!c.noSag;p.tk=Number.isInteger(c.tk)?c.tk:null;p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
+    s.players.forEach((c,k)=>{const p=GM.players[k],wo=p.out;p.items=Array.isArray(c.items)?c.items.filter(x=>Array.isArray(x)&&x.length===4).slice(0,MKT_MAX).map(x=>[String(x[0]).slice(0,40),String(x[1]).slice(0,4),+x[2]||0,Math.max(0,Math.min(3,x[3]|0))]):[];p.uid=c.uid;p.cash=c.cash;p.jail=c.jail;p.jf=c.jf||[];p.laps=c.laps|0;p.noIn=!!c.noIn;p.noSag=!!c.noSag;p.tk=Number.isInteger(c.tk)?c.tk:null;p.jet=!!c.jet;p.out=!!c.out;if(p.out&&!wo)scene.remove(p.mesh);if(p.vpos===undefined)p.vpos=p.pos;p.pos=c.pos;});
     {const f=s.fly&&Number.isInteger(s.fly.n)&&GM.players[s.fly.k]?{n:s.fly.n,k:s.fly.k|0,to:s.fly.to|0}:null;if(f&&f.n!==(GM.flyN||0)){GM.flyN=f.n;if(!first&&T[f.to])GM.players[f.k].flyTo=f.to;}GM.fly=f;}
     GM.cur=s.cur;GM.phase=s.phase;GM.busy=!!s.busy;GM.dbl=s.dbl||0;GM.again=!!s.again;GM.decks=s.decks||GM.decks;
     if(s.dice&&(s.roll||0)!==(GM.roll||0)){const d=$('dice');d.style.display='';d.textContent=`🎲 ${s.dice[0]} + ${s.dice[1]} = ${s.dice[0]+s.dice[1]}`;if(!first)rollDiceAnim(s.dice[0],s.dice[1]);}GM.dice=s.dice||[0,0];GM.roll=s.roll||0;
@@ -1731,6 +1835,7 @@ function netApply(s){if(!s||!s.started||!Array.isArray(s.players))return;if(NET.
     (s.grp||[]).forEach((g,k)=>{if(grp[k]&&(g.theme!==grp[k].theme||g.light!==grp[k].light)){grp[k].theme=g.theme;grp[k].light=g.light;applyTheme(k);}});
     const n=Math.min((s.log||[]).length,Math.max(0,(s.logN||0)-NET.logN));if(n){s.log.slice(-n).forEach(m=>{GM.log.push(String(m));if(!first)sfxFor(String(m));});$('log').innerHTML=GM.log.slice(-2).map(x=>`<div>${esc(x)}</div>`).join('');}NET.logN=s.logN||0;
     {const cl=o=>{const r={};for(const k in (o||{}))if(Number.isInteger(+k)&&Number.isInteger(o[k])&&GM.players[o[k]])r[+k]=o[k];return r;},nm2=cl(s.mgr),nw=cl(s.wrk);if(JSON.stringify([nm2,nw])!==JSON.stringify([GM.mgr,GM.wrk])){GM.mgr=nm2;GM.wrk=nw;updateStaff();}}
+    GM.pw=pwClean(s.pw);
     GM.debt=s.debt&&GM.players[s.debt.pl]?{pl:GM.players[s.debt.pl],amt:s.debt.amt,to:s.debt.to>=0?GM.players[s.debt.to]:null}:null;
     if((s.season||0)!==SEASON||(s.season||0)!==(GM.season||0)){GM.season=s.season||0;setSeason(GM.season);}GM.sT=s.sT||0;
     GM.auction=s.auction||null;if(GM.auction)GM.aucEnd=Date.now()+(GM.auction.left||0);GM.trade=s.trade||null;GM.after=s.after||'end';NET.lastAct=Date.now();
@@ -1815,7 +1920,8 @@ wrap.addEventListener('pointerleave',()=>{$('tip').style.display='none';});
 function setMode(m){mode=m;document.getElementById('bOrbit').classList.toggle('on',m==='orbit');document.getElementById('bWalk').classList.toggle('on',m==='walk');
   document.getElementById('hint').textContent=m==='orbit'?'Trascina per girare il tabellone · rotellina per lo zoom · clicca una casella per sceglierla':'Sei dietro la pedina di turno · trascina per guardarti intorno';}
 document.getElementById('bOrbit').onclick=()=>{focus(-1);setMode('orbit');};wrap.addEventListener('dblclick',e=>{if(e.target.closest('button,#modal,#dock,#tools,#chat,#hand,.pl'))return;pick(e);focus(sel);});
-document.getElementById('bWalk').onclick=()=>setMode('walk');document.getElementById('bR').onclick=()=>{const m=$('modal');if(m.classList.contains('show')&&!m.querySelector('#mX,#mOk'))return;if(GM.on&&GM.busy&&m.classList.contains('show'))return;rulesModal();};
+document.getElementById('bWalk').onclick=()=>setMode('walk');document.getElementById('bG').onclick=()=>{const m=$('modal');if(m.classList.contains('show')&&!m.querySelector('#mX,#mOk'))return;if(GM.on)paperModal();};
+document.getElementById('bR').onclick=()=>{const m=$('modal');if(m.classList.contains('show')&&!m.querySelector('#mX,#mOk'))return;if(GM.on&&GM.busy&&m.classList.contains('show'))return;rulesModal();};
 document.getElementById('bNew').onclick=()=>{if(!NET.on)return startModal();modal(`<h2>Stanza online</h2><p>Sei in una stanza online. Per iniziare un'altra partita esci e creane una nuova.</p><div class="link"><input readonly value="${inviteUrl()}"></div><div class="ctrl"><button class="big act" id="mOut">Esci dalla stanza</button><button class="big" id="mX">Resta</button></div>`);$('mOut').onclick=()=>{location.href=location.pathname;};$('mX').onclick=()=>modal('');};
 let HQ=true;document.getElementById('bQ').onclick=e=>{HQ=!HQ;e.target.textContent=HQ?'HD':'SD';renderer.setPixelRatio(HQ?Math.min(devicePixelRatio,2.5):1);
   const n=HQ?4096:1024;sun.shadow.mapSize.set(n,n);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}resize();};
@@ -1915,7 +2021,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}if(document.hidden)flyTick(now);},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={Z,K,CEN,NQ,DIS,LOC,RING,QC,QA,route,gateAsk,PATH,tileG,RR,UT,plotMeshes,plotClick,hasMon,monOwners,seasonEvents,MONFX,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,salOf,seasonLotto,START,RM,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
+window.__dbg={Z,K,CEN,NQ,DIS,LOC,RING,QC,QA,route,gateAsk,PATH,tileG,RR,UT,plotMeshes,plotClick,hasMon,monOwners,seasonEvents,MONFX,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,PW,patr,titLv,titName,isRe,titCheck,pwSeason,pwBribe,pwDenounce,pwFound,pwInvite,pwAnswer,pwShadow,pwAccuse,pwJet,powerModal,paperModal,pwCan,BRIBES,JET,TIT,salOf,seasonLotto,START,RM,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
 </script>
 </body>
 </html>
