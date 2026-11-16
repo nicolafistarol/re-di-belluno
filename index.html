@@ -1005,7 +1005,7 @@ function makeToken(shape,col){const g=new THREE.Group(),m=M(col,{roughness:.2,me
 
 /* ================= GIOCO ================= */
 const EUR=n=>String(Math.round(n*1000)).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' €';
-const RR=T.map((t,i)=>t.t==='sta'?i:-1).filter(i=>i>=0),UT=T.map((t,i)=>t.t==='util'?i:-1).filter(i=>i>=0),START=1500,SAL=200,BAIL=50,ownG={};
+const RR=T.map((t,i)=>t.t==='sta'?i:-1).filter(i=>i>=0),UT=T.map((t,i)=>t.t==='util'?i:-1).filter(i=>i>=0),START=NQ>1?4000:1500,SAL=200,RM=NQ>1?2:1,SALV=NQ>1?20:0,LOT_T=100,LOT_B=500,BAIL=50,ownG={};
 const GM={on:false,players:[],cur:0,phase:'',dbl:0,owner:{},mort:{},dice:[0,0],debt:null,fast:false,busy:false,log:[],decks:{ch:[],cc:[]}};
 const demo={name:'Pedina',mesh:makeToken('pedone','#d9a520'),pos:0,cash:0,jf:[],color:'#d9a520'};scene.add(demo.mesh);
 let pawn=demo.mesh;const segs=[],moving=p=>segs.some(x=>x.pl===p),dir=new THREE.Vector3(-1,0,0);
@@ -1022,7 +1022,8 @@ function hop(pl,to,dur){return new Promise(res=>{const b=slot(pl,to);
   if(GM.fast){pl.pos=to;pl.mesh.position.copy(b);res();return;}
   const a=pl.mesh.position.clone();a.y=PATH[pl.pos]?PATH[pl.pos].y:0;const far=a.distanceTo(b);segs.push({pl,a,b,t0:performance.now(),to,res,dur:Math.max(dur||250,far>9?far*24:0)});SFX.step();});}
 /* passaggio da una Porta dopo aver finito il giro del quartiere: stipendio, opere, paghe */
-function passFx(pl,from){if(!GM.on||LOC(pl.pos)!==0||LOC(from)!==39||DIS(from)!==DIS(pl.pos))return;const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);pl.cash+=SAL+mo;say(`${pl.name} passa dalla ${T[pl.pos].n} e ritira ${EUR(SAL+mo)}${mo?' (con le opere in centro)':''}.`);payday(pl,SAL,mo,sellItems(pl));if(hasMon(pl,'ruota'))freeSpin(pl);pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}
+const salVie=pl=>owned(pl).filter(i=>T[i].t==='prop'&&!GM.mort[i]).length,salOf=pl=>SAL+SALV*salVie(pl);
+function passFx(pl,from){if(!GM.on||LOC(pl.pos)!==0||LOC(from)!==39||DIS(from)!==DIS(pl.pos))return;const mo=Object.values(GM.centro).filter(c=>GM.players[c.o]===pl).reduce((a,c)=>a+monNow(c.t),0);const sal=salOf(pl);pl.cash+=sal+mo;say(`${pl.name} passa dalla ${T[pl.pos].n} e ritira ${EUR(sal+mo)}${mo?' (con le opere in centro)':''}${SALV&&sal>SAL?' ('+salVie(pl)+' vie: +'+EUR(sal-SAL)+')':''}.`);payday(pl,sal,mo,sellItems(pl));if(hasMon(pl,'ruota'))freeSpin(pl);pl.laps=(pl.laps||0)+1;if(pl.tk!=null&&pl.laps-pl.tk>=2){pl.tk=null;say(`🎫 Il biglietto aereo di ${pl.name} è scaduto.`);}ui();}
 async function gateAsk(pl){const d=DIS(pl.pos),nd=(d+1)%NQ;if(GM.fast)return Math.random()<.3;return new Promise(res=>{modal(`<h2>🧭 Piazza del Re</h2><p>Sei alla <b>${T[pl.pos].n}</b>. Puoi entrare nel quartiere <b>${QN[d]}</b>, oppure proseguire sulla piazza verso il quartiere <b>${QN[nd]}</b>.</p><div class="ctrl"><button class="big act" id="mX">Entro: ${QN[d]}</button><button class="big" id="gGo">Proseguo verso ${QN[nd]} ➜</button></div>`);
   $('mX').onclick=()=>{modal('');res(false);};$('gGo').onclick=()=>{modal('');res(true);};});}
 async function advance(pl,n,noChoice){for(let k=0;k<n;k++){if(pl.out)break;let br=false;if(pl.pos===5&&!noChoice)br=await routeAsk(pl);else if(pl.pos===10&&!noChoice&&(await sagAsk(pl)))br='s';else if(NQ>1&&LOC(pl.pos)===0&&!noChoice&&(await gateAsk(pl)))br='x';if(pl.out)break;const from=pl.pos;await hop(pl,nxt(pl.pos,br),n>12?110:250);passFx(pl,from);}face(pl);}
@@ -1070,10 +1071,10 @@ function updateOwner(i){updateSign(i);const g=ownG[i];if(!g)return;while(g.child
 function checkThemes(){G.forEach((_,g)=>{if(grp[g].theme&&!GM.players.some(p=>!p.out&&hasSet(p,g))){grp[g].theme='';applyTheme(g);}});staffCheck();}
 function buy(pl,i){pl.cash-=T[i].p;GM.owner[i]=pl;updateOwner(i);say(`🏠 ${pl.name} compra ${T[i].n} per ${EUR(T[i].p)}.`);ui();}
 function rentOf(i,dice,mult){const t=T[i],o=GM.owner[i];if(!o||GM.mort[i])return 0;
-  if(t.t==='prop'){const lv=st[i].lv,b=lv?t.r[lv]:(hasSet(o,t.g)?t.r[0]*2:t.r[0]);return mgrOn(t.g)?Math.round(b*1.2):b;}
+  if(t.t==='prop'){const lv=st[i].lv,b=lv?t.r[lv]:(hasSet(o,t.g)?t.r[0]*2:t.r[0])*RM;return mgrOn(t.g)?Math.round(b*1.2):b;}
   if(t.t==='toll')return TOLL;if(t.t==='air')return 0;
-  if(t.t==='sta')return Math.round(25*Math.pow(2,RR.filter(k=>DIS(k)===DIS(i)&&GM.owner[k]===o).length-1)*(mult?2:1)*(i===35&&GM.season===3?2:1)*(wrkOn(i)?1.5:1));
-  return Math.round(dice*(mult||UT.filter(k=>DIS(k)===DIS(i)).every(k=>GM.owner[k]===o)?10:4)*(GM.season===1?1.5:1)*(wrkOn(i)?1.5:1));}
+  if(t.t==='sta')return Math.round(25*RM*Math.pow(2,RR.filter(k=>DIS(k)===DIS(i)&&GM.owner[k]===o).length-1)*(mult?2:1)*(i===35&&GM.season===3?2:1)*(wrkOn(i)?1.5:1));
+  return Math.round(dice*RM*(mult||UT.filter(k=>DIS(k)===DIS(i)).every(k=>GM.owner[k]===o)?10:4)*(GM.season===1?1.5:1)*(wrkOn(i)?1.5:1));}
 function whyNoBuild(pl,i){const t=T[i],s=st[i];if(!s)return 'Qui non si costruisce.';if(GM.owner[i]!==pl)return 'Questa via non è tua.';if(!hasSet(pl,t.g))return 'Ti serve tutta la serie '+GN[t.g]+'.';
   const ids=groupIds(t.g);if(ids.some(k=>GM.mort[k]))return 'Una via di questa serie è ipotecata ('+ids.filter(k=>GM.mort[k]).map(k=>T[k].n).join(', ')+'). Riscattala prima.';if(s.lv>=5)return "C'è già l'albergo.";
   if(pl.cash<HC[t.g])return 'Una casa qui costa '+EUR(HC[t.g])+' e non li hai.';
@@ -1231,7 +1232,8 @@ async function market(pl){if(pl.out)return;pl.items=pl.items||[];
 /* funzioni speciali delle opere del centro */
 const MONFX={fontana:'A ogni doppio che tiri ritiri '+EUR(30)+'.',ruota:'A ogni passaggio dalla Partenza un giro omaggio: vinci sempre qualcosa.',torre:'Vedi ogni Imprevisto prima di pescarlo e puoi lasciarlo nel mazzo.',stadio:'A ogni cambio di stagione c’è la partita: ogni altro giocatore ti paga '+EUR(30)+'.',castello:'Non paghi più tasse né autovelox.',resort:'A ogni cambio di stagione arrivano i turisti: '+EUR(50)+', in estate '+EUR(150)+'.',osserv:'Chi capita sul Belvedere ti paga '+EUR(40)+'.',seggiovia:'Chi capita sul Belvedere ti paga '+EUR(40)+'.'};
 const monOwners=t=>[...new Set(Object.values(GM.centro||{}).filter(c=>c.t===t&&GM.players[c.o]&&!GM.players[c.o].out).map(c=>GM.players[c.o]))],hasMon=(pl,t)=>monOwners(t).includes(pl);
-function seasonEvents(){monOwners('stadio').forEach(o=>{let tot=0;alive().forEach(p=>{if(p!==o){const v=Math.min(30,Math.max(0,p.cash));p.cash-=v;tot+=v;}});o.cash+=tot;say(`🏟️ Partita allo stadio di ${o.name}: gli altri pagano il biglietto, incassa ${EUR(tot)}.`);});
+function seasonLotto(){if(NQ<2)return;const part=alive().filter(p=>p.cash>=LOT_T);if(part.length<2)return;part.forEach(p=>p.cash-=LOT_T);const pot=LOT_T*part.length+LOT_B,w=part[Math.floor(Math.random()*part.length)];w.cash+=pot;say(`🎰 Lotteria di stagione: ${part.length} biglietti da ${EUR(LOT_T)}, la banca aggiunge ${EUR(LOT_B)}. ${w.name} vince ${EUR(pot)}!`);}
+function seasonEvents(){seasonLotto();monOwners('stadio').forEach(o=>{let tot=0;alive().forEach(p=>{if(p!==o){const v=Math.min(30,Math.max(0,p.cash));p.cash-=v;tot+=v;}});o.cash+=tot;say(`🏟️ Partita allo stadio di ${o.name}: gli altri pagano il biglietto, incassa ${EUR(tot)}.`);});
   monOwners('resort').forEach(o=>{const v=GM.season===1?150:50;o.cash+=v;say(`🏝️ Turisti al Grand Resort di ${o.name}: incassa ${EUR(v)}.`);});}
 function freeSpin(pl){const r=[20,40,40,80,80,150,'item'][Math.floor(Math.random()*7)];if(r==='item'&&(pl.items=pl.items||[]).length<MKT_MAX){const it=pickItem();pl.items.push([it[0],it[1],it[2],it[3]]);say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${it[1]} ${it[0]} (${RAR[it[3]]}).`);}else{const v=r==='item'?50:r;pl.cash+=v;say(`🎡 Giro omaggio sulla ruota panoramica: ${pl.name} vince ${EUR(v)}.`);}}
 async function mountFee(pl){for(const [t,n] of [['seggiovia','la seggiovia'],['osserv','l’osservatorio']])for(const o of monOwners(t))if(o!==pl&&!pl.out){say(`🚡 ${pl.name} sale al Belvedere e paga ${EUR(40)} a ${o.name} per ${n}.`);await pay(pl,40,o);}}
@@ -1482,10 +1484,11 @@ function centroModal(pre){const free=!GM.on,me=free?demo:(canAct()?actor():(NET.
 
 /* regole in breve */
 function rulesModal(){const R=[
- ['🎯 Scopo','Vince chi resta ultimo senza finire in bancarotta.'],
+ ['🎯 Scopo','Conquista Belluno: compra, costruisci e manda in bancarotta gli altri finché tutto è tuo. Vince chi resta ultimo.'],
+ ...(NQ>1?[['💰 Soldi sul tabellone grande',`Si parte con <b>${EUR(START)}</b>. Gli affitti senza case, delle stazioni e delle società sono <b>doppi</b>. Lo <b>stipendio cresce</b>: ${EUR(SAL)} più ${EUR(SALV)} per ogni tua via non ipotecata. A ogni cambio di stagione c’è la <b>lotteria</b>: chi ha almeno ${EUR(LOT_T)} compra un biglietto, la banca aggiunge ${EUR(LOT_B)}, uno solo vince tutto.`]]:[]),
  ['🎲 Il turno','Tiri i dadi e avanzi. Con un doppio tiri ancora; al terzo doppio di fila vai in prigione. Poi premi <b>Fine turno</b>.'],
  ['🏠 Vie, stazioni e società',`Se la casella è libera puoi comprarla. Se non la compri va all’<b>asta</b>: 15 secondi, tutti offrono quanto vogliono. Se è di un altro, gli paghi l’affitto. Con tutta una serie di un colore l’affitto raddoppia e puoi costruire case e alberghi.`],
- ['🚀 Partenza',`Ogni volta che ci passi ritiri <b>${EUR(SAL)}</b>, più la rendita delle tue opere in centro. Qui vendi anche gli oggetti del mercatino.`],
+ ['🚀 Partenza',`Ogni volta che ci passi ritiri <b>${EUR(SAL)}</b>${SALV?' (più '+EUR(SALV)+' per ogni tua via)':''}, più la rendita delle tue opere in centro. Qui vendi anche gli oggetti del mercatino.`],
  ...(NQ>1?[['🧭 I quattro quartieri',`Il tabellone è un <b>quadrifoglio</b>: quattro quartieri ad anello (${QN.join(', ')}) attorno alla <b>Piazza del Re</b>. Ogni quartiere ha la sua <b>Porta</b> sulla piazza. Quando sei su una Porta scegli: entri nel quartiere, oppure prosegui sulla piazza verso il quartiere dopo. Ogni volta che finisci il giro di un quartiere e ripassi dalla sua Porta ritiri lo stipendio. Stazioni e società contano quartiere per quartiere. Prigione, aeroporto, strada interna e sagra sono nel Centro storico. La camera segue il quartiere di chi è di turno: con la rotellina ti allontani e vedi tutta la mappa.`]]:[]),
  ['🛣️ Strada interna',`È la strada che taglia in mezzo al tabellone. <b>Si entra solo passando dalla Stazione dei treni</b> (in basso al centro): il gioco ti chiede se vuoi prenderla. Ha 8 caselle e ti fa uscire alle Scale mobili di Lambioi, dall’altra parte: è una scorciatoia, salti metà giro. <b>Non puoi prenderla due giri di fila</b>: dopo averla usata, al passaggio dopo resti sul giro esterno.`],
  ['🚧 Casello',`È la prima casella della strada interna. Chi entra nella strada paga <b>${EUR(TOLL)}</b> di pedaggio. Chi compra il Casello (${EUR(T[40].p)}) incassa tutti i pedaggi degli altri. Lui paga solo la metà, ${EUR(TOLL/2)}, alla banca. Finché il Casello è libero, il pedaggio va alla banca.`],
@@ -1574,6 +1577,7 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   else if(m.startsWith('🧺'))fxBanner('🧺 MERCATINO',nm,'#ffd23d',1);
   else if(m.startsWith('🛣️'))fxBanner('🛣️ STRADA INTERNA',nm,'#c9b8ff',1);
   else if(m.startsWith('🎡'))fxBanner('🎡 RUOTA DELLA FORTUNA',nm,'#ffd23d',1);
+  else if(m.startsWith('🎰')){fxBanner('🎰 LOTTERIA DI STAGIONE',nm.replace(/^.*aggiunge [^.]*\. /,''),'#ffd23d');fxRain(['🎰','💶','🎉'],40);}
   else if(m.startsWith('🎟️')&&m.includes('primo premio')){fxBanner('🎟️ PRIMO PREMIO!',nm,'#ffd23d');fxRain(['🎟️','💶','🎉'],40);}
   else if(/^(🎪|🎯|🍷|🎟️|🎶|🎁)/.test(m))fxBanner('🎪 SAGRA',nm,'#ffd23d',1);
   else if(/^(🏟️|⛲|🏰|🚡|🗼|🏝️)/.test(m))fxBanner(m.split(' ')[0]+' OPERA DEL CENTRO',nm,'#ffd23d',1);
@@ -1654,7 +1658,7 @@ function renderHand(){const h=$('hand'),p=GM.on?(NET.on?GM.players[mySeat()]:cur
   $('handS').textContent=(NET.on?'Le tue carte':'Carte di '+p.name)+' · ordine: '+HSORT+' ⇄';
   $('handS').onclick=()=>{HSORT={colore:'valore',valore:'nome',nome:'colore'}[HSORT]||'colore';try{localStorage.setItem('rdb_sort',HSORT);}catch(e){}renderHand();};
   h.querySelectorAll('.hc[data-i]').forEach(e=>e.onclick=()=>select(+e.dataset.i));const tc=h.querySelector('.hc.tk');if(tc)tc.onclick=flyModal;}
-function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
+function sfxFor(m){fxFor(m);if(m.startsWith('🏠'))SFX.buy();else if(m.startsWith('💸'))SFX.rent();else if(m.startsWith('🚓'))SFX.jail();else if(m.startsWith('💎')||m.startsWith('🧺')||m.startsWith('🎰')||(m.startsWith('🎫')&&m.includes(' compra ')))SFX.cash();else if(m.startsWith('🏨')){SFX.build();SFX.cash();}else if(m.startsWith('💥'))SFX.boom();else if(m.startsWith('🏆'))SFX.win();
   else if(m.startsWith('🔨'))tone(700,.07,'square',.06);else if(m.startsWith('👔')||m.startsWith('👷'))SFX.build();else if(m.startsWith('🧾')||/^(🏟️|⛲|🏝️)/.test(m)||(/^(🎯|🎟️|🎁)/.test(m)&&m.includes(' vince ')))SFX.cash();else if(m.includes(' pesca: '))SFX.card();else if(m.includes(' costruisce '))SFX.build();else if(m.includes(' ritira '))SFX.cash();}
 addEventListener('pointerdown',()=>{if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();});
 
@@ -1778,13 +1782,13 @@ function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.set((e.c
   ray.setFromCamera(mv,camera);const h=ray.intersectObjects(tileMeshes.concat(plotMeshes.filter(Boolean)))[0];if(!h)return;if(h.object.userData.plot!==undefined)plotClick(h.object.userData.plot);else select(h.object.userData.i);}
 /* fumetto con la spiegazione della casella sotto il mouse */
 function tileHelp(i){const t=T[i],o=GM.owner[i],own=o?` Di ${o.name}${GM.mort[i]?' (ipotecata)':''}.`:(GM.on&&t.p&&t.t!=='tax'?' Libera.':'');
-  if(t.t==='prop')return `Serie ${GN[t.g]}. Prezzo ${EUR(t.p)}. Affitto ${EUR(GM.on&&o?rentOf(i,7,false):t.r[0])}.`+own;
-  if(t.t==='sta')return `Stazione. Prezzo ${EUR(t.p)}. Affitto da ${EUR(25)} a ${EUR(200)}: più stazioni hai, più incassi.`+(i===5?' Da qui si entra nella strada interna.':'')+own;
+  if(t.t==='prop')return `Serie ${GN[t.g]}. Prezzo ${EUR(t.p)}. Affitto ${EUR(GM.on&&o?rentOf(i,7,false):t.r[0]*RM)}.`+own;
+  if(t.t==='sta')return `Stazione. Prezzo ${EUR(t.p)}. Affitto da ${EUR(25*RM)} a ${EUR(200*RM)}: più stazioni hai, più incassi.`+(i===5?' Da qui si entra nella strada interna.':'')+own;
   if(t.t==='util')return `Società. Prezzo ${EUR(t.p)}. L’affitto dipende dai dadi.`+own;
   if(t.t==='tax')return `Paghi ${EUR(t.p)} alla banca.`;
   if(t.t==='cc')return 'Peschi una carta della Cassa comune.';
   if(t.t==='ch')return 'Peschi una carta Imprevisto.';
-  if(t.act==='gate')return `Porta del quartiere ${QN[DIS(i)]}. Quando finisci il giro del quartiere e passi di qui ritiri ${EUR(SAL)} e vendi gli oggetti.${NQ>1?' Da qui puoi anche passare al quartiere '+QN[(DIS(i)+1)%NQ]+'.':''}`;
+  if(t.act==='gate')return `Porta del quartiere ${QN[DIS(i)]}. Quando finisci il giro del quartiere e passi di qui ritiri ${EUR(SAL)}${SALV?' più '+EUR(SALV)+' per ogni tua via':''} e vendi gli oggetti.${NQ>1?' Da qui puoi anche passare al quartiere '+QN[(DIS(i)+1)%NQ]+'.':''}`;
   if(t.act==='mkt'&&i!==20)return `Mercatino: per ${EUR(MKT)} scegli un oggetto coperto. Lo vendi quando passi da una Porta.`;
   if(t.act==='jail'&&i!==30)return 'Vai dritto in prigione, nel Centro storico.';
   if(t.act==='rest')return 'Ti riposi: non succede niente.';
@@ -1839,12 +1843,12 @@ function select(i){
     const L=['Affitto base','Con 1 casa','Con 2 case','Con 3 case','Con 4 case','Con albergo'];
     deed.style.setProperty('--g',G[t.g]);deed.style.setProperty('--gt',GT[t.g]);
     h=`<div class="deedTop"><small>Gruppo ${GN[t.g]}</small><div>${t.n}</div></div><div class="rows">`
-     +L.map((x,k)=>`<div class="row ${st[i].lv===k?'on':''}"><span>${x}</span><b>${EUR(t.r[k])}</b></div>`).join('')
+     +L.map((x,k)=>`<div class="row ${st[i].lv===k?'on':''}"><span>${x}</span><b>${EUR(t.r[k]*(k?1:RM))}</b></div>`).join('')
      +`<div class="row sep"><span>Prezzo</span><b>${EUR(t.p)}</b></div><div class="row"><span>Ogni casa costa</span><b>${EUR(HC[t.g])}</b></div><div class="row"><span>Ipoteca</span><b>${EUR(t.p/2)}</b></div>${own}</div>`;
   }else{
     deed.style.setProperty('--g','#39446e');deed.style.setProperty('--gt','#fff');
-    const txt={sta:['Stazione',[['Con 1 stazione',EUR(25)],['Con 2 stazioni',EUR(50)],['Con 3 stazioni',EUR(100)],['Con 4 stazioni',EUR(200)],['Prezzo',EUR(200)]]],
-      util:['Società',[['Con 1 società','4.000 € × i dadi'],['Con 2 società','10.000 € × i dadi'],['Prezzo',EUR(150)]]],
+    const txt={sta:['Stazione',[['Con 1 stazione',EUR(25*RM)],['Con 2 stazioni',EUR(50*RM)],['Con 3 stazioni',EUR(100*RM)],['Con 4 stazioni',EUR(200*RM)],['Prezzo',EUR(200)]]],
+      util:['Società',[['Con 1 società',EUR(4*RM)+' × i dadi'],['Con 2 società',EUR(10*RM)+' × i dadi'],['Prezzo',EUR(150)]]],
       tax:['Tassa',[['Paghi alla banca',EUR(t.p||0)]]],ch:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],cc:['Carta',[['Peschi una carta',(CARDS[t.t]||[]).length+' nel mazzo']]],
       corner:['Angolo',[[t.sub||'','']]],toll:['Strada a pedaggio',[['Pedaggio per entrare',EUR(TOLL)],['Il proprietario paga',EUR(TOLL/2)],['Prezzo',EUR(t.p||0)]]],air:['Aeroporto',[['Biglietto aereo',EUR(AIRTK)],['Va al proprietario','tutto'],['Il proprietario paga',EUR(AIRTK/5)],['Prezzo',EUR(t.p||0)]]]}[t.t]||(t.t.startsWith('sg')?['Via delle sagre',[[t.sub||'',''],['Oggi',sagOpen()?'aperta':'chiusa']]]:['Strada interna',[[t.sub||'','']]]);
     h=`<div class="deedTop"><small>${txt[0]}</small><div>${t.ic} ${t.n}</div></div><div class="rows">`+txt[1].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')+own+`</div>`;
@@ -1911,7 +1915,7 @@ function loop(){
 setInterval(()=>{const now=performance.now();for(let n=segs.length-1;n>=0;n--){const sg=segs[n];if(now-sg.t0>=sg.dur+60){if(!sg.vis)sg.pl.pos=sg.to;sg.pl.vpos=sg.to;sg.pl.mesh.position.copy(sg.b);segs.splice(n,1);sg.res();}}if(document.hidden)flyTick(now);},200);
 function start(){try{if(localStorage.getItem('rdb_panel')==='0')setPanel(false);}catch(e){}buildBoard();demo.mesh.position.copy(PATH[0]);resize();select(39);ui();loop();const c=(QS.get('stanza')||'').replace(/[^A-Za-z0-9]/g,'');if(c&&CAN_NET)netOpen(c);else startModal();window.__ready=true;}
 Promise.race([document.fonts.load('900 30px Outfit').then(()=>document.fonts.load('800 27px Outfit')),new Promise(r=>setTimeout(r,1500))]).then(start,start);
-window.__dbg={Z,K,CEN,NQ,DIS,LOC,RING,QC,QA,route,gateAsk,PATH,tileG,RR,UT,plotMeshes,plotClick,hasMon,monOwners,seasonEvents,MONFX,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
+window.__dbg={Z,K,CEN,NQ,DIS,LOC,RING,QC,QA,route,gateAsk,PATH,tileG,RR,UT,plotMeshes,plotClick,hasMon,monOwners,seasonEvents,MONFX,tileHelp,sagOpen,sagSync,SAG,sagLand,routeTo,dist,nxt,setSeason,focus,musPlay,musModal,MUS,fxFor,fxBanner,cam:(a,p,r)=>{az=a;pol=p;rad=r;},cedeModal,auctionBid,placeBid,auctionClose,tradeResolve,propsModal,centroModal,buildCentro,NET,mine,mySeat,netSnap,st,rebuild,select,setMode,bldG,grp,applyTheme,setNight,GM,startGame,autoPlay,doRoll,endTurn,salOf,seasonLotto,START,RM,T,owned,hasSet,modal,ui,SETUP,rulesModal,setPanel,hireMgr,fireMgr,hireWrk,fireWrk,mgrOn,wrkOn,updateStaff,rentOf,staffG,fly,flyModal,flyDest,airDesk,tkCan,flyAnim,FLY,land,curP,AIRTK};
 </script>
 </body>
 </html>
