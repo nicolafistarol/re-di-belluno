@@ -1501,7 +1501,7 @@ function titLv(pl){const w=patr(pl);let l=0;TIT.forEach((t,k)=>{if(w>=t[2])l=k;}
 function isRe(pl){return GM.on&&!!GM.pw&&GM.pw.re>=0&&GM.players[GM.pw.re]===pl&&!pl.out;}
 const titName=pl=>isRe(pl)?'Re':TIT[titLv(pl)][0],titIc=pl=>isRe(pl)?'👑':TIT[titLv(pl)][1];
 function news(t){const p=PW();p.news.push(String(t));if(p.news.length>14)p.news.shift();}
-function pwSay(m){if(!GM.on||NET.applying)return;if(m.startsWith('💥'))news(m.slice(2).trim().replace(/\.$/,''));else if(m.startsWith('🎰'))news('Lotteria di stagione: '+m.replace(/^.*€\. /,'').replace(/!$/,''));}
+function pwSay(m){if(!GM.on||NET.applying)return;if(m.startsWith('💥'))news(m.slice(2).trim().replace(/\.$/,''));else if(m.startsWith('🎰 Lotteria'))news('Lotteria di stagione: '+m.replace(/^.*€\. /,'').replace(/!$/,''));}
 const SETN=['Confraternita del Corvo','Loggia della Lanterna'],setOf=k=>((GM.pw&&GM.pw.sets)||[]).find(S=>S.m.includes(k))||null,BLK=PWR(400),PLOT_FEE=PWR(300);
 function pwMul(k){const p=GM.pw;if(!p||k<0)return 1;let m=1;if(p.app[k])m*=1.25;if(p.inch[k])m*=.75;if(p.sab[k])m*=.5;if(p.mud&&p.mud[k])m*=.85;if(p.ad&&p.ad[k])m*=1.15;return m;}
 function setBoth(a,b){const S=setOf(pk(a));return !!S&&a!==b&&S.m.includes(pk(b));}
@@ -1833,6 +1833,7 @@ function fxFor(m){if(GM.fast)return;const nm=m.replace(/^\S+\s/,'');
   else if(m.startsWith('🗡️')){fxShake();fxBanner(m.includes('Congiura')?'🗡️ CONGIURA!':'🗡️ FURTO NELLA NOTTE',m.includes('Congiura')?nm.split(':')[0].split('!')[0]:'','#ff5a4d');}
   else if(m.startsWith('📜')||m.startsWith('💔'))fxBanner(m.startsWith('📜')?'📜 CONTRATTO FIRMATO':'💔 CONTRATTO ROTTO',nm.split(':')[0],'#ffd23d',1);
   else if(/^(🏛️|🎖️|🎯|🛩️|⚖️|🔧)/.test(m))fxBanner(m.split(' ')[0]+' '+({'🏛️':'MUNICIPIO','🎖️':'NUOVO TITOLO','🎯':'TAGLIA SUL RE','🛩️':'JET PRIVATO','⚖️':'TRIBUNALE','🔧':'SABOTAGGIO'}[m.split(' ')[0]]||''),nm,'#ffd23d',1);
+  else if(m.startsWith('🎰 Casinò'))fxBanner('🎰 CASINÒ',nm,'#ffd23d',1);
   else if(m.startsWith('🎰')){fxBanner('🎰 LOTTERIA DI STAGIONE',nm.replace(/^.*€\. /,''),'#ffd23d');fxRain(['🎰','💶','🎉'],40);}
   else if(m.startsWith('🎟️')&&m.includes('primo premio')){fxBanner('🎟️ PRIMO PREMIO!',nm,'#ffd23d');fxRain(['🎟️','💶','🎉'],40);}
   else if(/^(🎪|🎯|🍷|🎟️|🎶|🎁)/.test(m))fxBanner('🎪 SAGRA',nm,'#ffd23d',1);
